@@ -162,17 +162,52 @@ GHOSTSCRIPT_PATH=gs
 ```text
 omni-toolbox/
 ├── app/
-│   ├── __init__.py          # Flask app factory
-│   ├── controllers/         # Routes / request handling (C)
-│   ├── models/              # Data & job models (M)
-│   ├── services/            # Processing logic (image, media, document, archive)
-│   ├── templates/           # Jinja2 templates (V)
-│   └── static/              # CSS, JS, images
-├── uploads/                 # Temporary uploaded files
-├── outputs/                 # Temporary processed files
-├── requirements.txt
+│   ├── __init__.py              # Flask app factory
+│   ├── config.py                # Pengaturan (limit upload, path binary, dll)
+│   │
+│   ├── controllers/             # BACKEND: routes / penerima request
+│   │   ├── __init__.py
+│   │   ├── main_controller.py   # Halaman utama
+│   │   ├── image_controller.py
+│   │   ├── pdf_controller.py
+│   │   ├── media_controller.py
+│   │   └── archive_controller.py
+│   │
+│   ├── services/                # BACKEND: logika pemrosesan file
+│   │   ├── __init__.py
+│   │   ├── image_service.py     # <- dari main.py kamu
+│   │   ├── pdf_service.py       # <- dari compresPdf.py kamu
+│   │   ├── media_service.py
+│   │   └── archive_service.py
+│   │
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   └── file_utils.py        # Validasi ekstensi, nama file aman, hapus file lama
+│   │
+│   ├── templates/               # FRONTEND: halaman HTML (Jinja2)
+│   │   ├── base.html            # Layout utama (navbar, footer)
+│   │   ├── index.html           # Dashboard semua tool
+│   │   ├── image/
+│   │   │   └── compress.html
+│   │   └── pdf/
+│   │       └── compress.html
+│   │
+│   └── static/                  # FRONTEND: aset statis
+│       ├── css/style.css
+│       ├── js/main.js
+│       └── img/
+│
+├── uploads/                     # File upload sementara (jangan di-commit)
+├── outputs/                     # Hasil proses sementara (jangan di-commit)
+├── legacy/                      # Simpan script terminal lamamu di sini
+│   ├── main.py
+│   └── compresPdf.py
+│
+├── .env
 ├── .env.example
-├── run.py
+├── .gitignore
+├── requirements.txt
+├── run.py                       # Titik masuk untuk menjalankan app
 └── README.md
 ```
 
