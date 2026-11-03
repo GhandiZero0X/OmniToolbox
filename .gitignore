@@ -1,8 +1,35 @@
-﻿venv/
+﻿# ===== Python =====
+venv/
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+
+# ===== Environment & rahasia =====
 .env
+
+# ===== File upload & hasil proses (folder tetap ada lewat .gitkeep) =====
 uploads/*
 outputs/*
 !uploads/.gitkeep
 !outputs/.gitkeep
+
+# ===== Folder input/output script terminal lama =====
+legacy/input/
+legacy/output/
+legacy/pdf/input/
+legacy/pdf/output/
+input/
+output/
+pdf/input/
+pdf/output/
+
+# ===== Model upscale (file besar, unduh terpisah) =====
+*.pth
+*.onnx
+
+# ===== Editor & OS =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
