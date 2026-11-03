@@ -2,11 +2,11 @@
 
 > An all-in-one web utility suite to convert, compress, merge, and upscale your images, videos, audio, and documents in one place.
 
-<!-- ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-MVC-lightgrey?style=flat-square&logo=flask&logoColor=white)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5-purple?style=flat-square&logo=bootstrap&logoColor=white)
 ![FFmpeg](https://img.shields.io/badge/FFmpeg-required-green?style=flat-square&logo=ffmpeg&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square) -->
+![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 
 ---
 
