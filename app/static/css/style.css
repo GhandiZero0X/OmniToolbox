@@ -1,0 +1,75 @@
+.hero {
+  background:
+    radial-gradient(60% 80% at 50% 0%, rgba(var(--bs-primary-rgb), 0.12), transparent 70%);
+}
+
+/* Kartu tool di beranda */
+.tool-card {
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
+  border-color: var(--bs-primary);
+}
+.tool-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.coming-soon {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+/* Area drag & drop */
+.dropzone {
+  border: 2px dashed var(--bs-border-color);
+  border-radius: 1rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bs-tertiary-bg);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.dropzone:hover,
+.dropzone:focus-visible,
+.dropzone.is-dragover {
+  border-color: var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), 0.08);
+  outline: none;
+}
+.dropzone-icon {
+  font-size: 2.75rem;
+  color: var(--bs-primary);
+  line-height: 1;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Daftar file yang dipilih */
+#file-list .list-group-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+#file-list .file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tabel hasil */
+#results-body td:first-child {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
