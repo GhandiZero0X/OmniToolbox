@@ -14,24 +14,35 @@
 <section class="container pb-4">
   <h2 class="h5 mb-3">Siap dipakai</h2>
   <div class="row g-4">
-    <div class="col-md-6">
+    <div class="col-md-4">
       <a href="{{ url_for('image.compress_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-primary-subtle text-primary"><i class="bi bi-image"></i></div>
           <h3 class="h5 mt-3">Kompres Gambar</h3>
           <p class="text-body-secondary mb-0">
-            Perkecil ukuran JPG, PNG, WebP, dan HEIC. Bisa banyak file sekaligus, dan bisa ganti format output.
+            Perkecil ukuran JPG, PNG, WebP, dan HEIC. Bisa banyak file sekaligus.
           </p>
         </div>
       </a>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
+      <a href="{{ url_for('image.convert_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-success-subtle text-success"><i class="bi bi-arrow-left-right"></i></div>
+          <h3 class="h5 mt-3">Konversi Gambar</h3>
+          <p class="text-body-secondary mb-0">
+            Ubah format antara HEIC, JPG, JPEG, PNG, dan WebP, termasuk foto iPhone.
+          </p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-4">
       <a href="{{ url_for('pdf.compress_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-danger-subtle text-danger"><i class="bi bi-file-earmark-pdf"></i></div>
           <h3 class="h5 mt-3">Kompres PDF</h3>
           <p class="text-body-secondary mb-0">
-            Kecilkan ukuran PDF dengan Ghostscript. Pilih tingkat kualitas dari ukuran terkecil sampai siap cetak.
+            Kecilkan ukuran PDF dengan Ghostscript, dari ukuran terkecil sampai siap cetak.
           </p>
         </div>
       </a>
@@ -43,7 +54,6 @@
   <h2 class="h5 mb-3">Segera hadir</h2>
   <div class="row g-3">
     {% for icon, title in [
-      ('bi-arrow-left-right', 'Konversi Gambar'),
       ('bi-camera-video', 'MOV ke MP4 / MP3'),
       ('bi-file-earmark-word', 'Word ke PDF'),
       ('bi-files', 'Gabung PDF'),

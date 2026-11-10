@@ -6,8 +6,13 @@ from ..utils.file_utils import human_size
 ZIP_NAME = "OmniToolbox_hasil.zip"
 
 
-def build_job_response(job_id: str, results: list, output_dir):
-    """Ubah hasil proses menjadi JSON untuk frontend (lengkap dengan link unduhan)."""
+def build_job_response(job_id: str, results: list, output_dir, show_savings: bool = True):
+    """
+    Ubah hasil proses menjadi JSON untuk frontend (lengkap dengan link unduhan).
+
+    show_savings=True  -> untuk fitur kompres (menampilkan persen hemat)
+    show_savings=False -> untuk fitur konversi (ukuran bisa naik atau turun)
+    """
     success = [r for r in results if r["status"] == "success"]
     failed = [r for r in results if r["status"] != "success"]
 
@@ -36,5 +41,6 @@ def build_job_response(job_id: str, results: list, output_dir):
             "original_size_h": human_size(total_original),
             "new_size_h": human_size(total_new),
             "saved_percent": round(max(saved_percent, 0.0), 1),
+            "show_savings": show_savings,
         },
     )

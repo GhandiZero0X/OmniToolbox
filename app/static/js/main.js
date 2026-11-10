@@ -235,7 +235,10 @@
         tr.append(el("td", "text-end text-nowrap", item.new_size_h));
 
         const savedCell = el("td", "text-end");
-        if (item.kept_original) {
+        if (item.badge) {
+          // Fitur konversi: tampilkan format hasil, bukan persen hemat
+          savedCell.append(el("span", "badge text-bg-primary", item.badge));
+        } else if (item.kept_original) {
           const badge = el("span", "badge text-bg-secondary", "Tetap");
           badge.title = "Tidak bisa diperkecil, file asli dipertahankan";
           savedCell.append(badge);
@@ -263,8 +266,8 @@
     let summary = s.success + " berhasil";
     if (s.failed) summary += ", " + s.failed + " gagal";
     if (s.success) {
-      summary += " \u00b7 " + s.original_size_h + " \u2192 " + s.new_size_h +
-                 " (hemat " + s.saved_percent + "%)";
+      summary += " \u00b7 " + s.original_size_h + " \u2192 " + s.new_size_h;
+      if (s.show_savings) summary += " (hemat " + s.saved_percent + "%)";
     }
     resultsSummary.textContent = summary;
 

@@ -12,8 +12,18 @@ SUPPORTED_INPUT = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
 OUTPUT_FORMATS = {"original", "jpg", "webp", "png", "heic"}
 
 # Nama format Pillow
-_FORMAT_BY_CHOICE = {"jpg": "JPEG", "webp": "WEBP", "png": "PNG", "heic": "HEIF"}
+_FORMAT_BY_CHOICE = {"jpg": "JPEG", "jpeg": "JPEG", "webp": "WEBP", "png": "PNG", "heic": "HEIF"}
 _EXT_BY_FORMAT = {"JPEG": ".jpg", "WEBP": ".webp", "PNG": ".png", "HEIF": ".heic"}
+
+# Fitur konversi: pilihan format -> ekstensi file hasil
+_EXT_BY_CONVERT_CHOICE = {
+    "png": ".png",
+    "jpg": ".jpg",
+    "jpeg": ".jpeg",
+    "webp": ".webp",
+    "heic": ".heic",
+}
+CONVERT_FORMATS = set(_EXT_BY_CONVERT_CHOICE)
 
 MIN_QUALITY, MAX_QUALITY = 10, 100
 
@@ -65,11 +75,15 @@ def _prepare_image(img: Image.Image, target_format: str) -> Image.Image:
     return img if img.mode == "RGB" else img.convert("RGB")
 
 
-def _save_image(img: Image.Image, out_path: Path, target_format: str, quality: int) -> None:
+def _save_image(img: Image.Image, out_path: Path, target_format: str, quality: int,
+                icc_profile=None) -> None:
+    # ICC profile menjaga warna tetap akurat (foto iPhone memakai Display P3)
+    icc = {"icc_profile": icc_profile} if icc_profile else {}
+
     if target_format == "JPEG":
-        img.save(out_path, "JPEG", quality=quality, optimize=True, progressive=True)
+        img.save(out_path, "JPEG", quality=quality, optimize=True, progressive=True, **icc)
     elif target_format == "WEBP":
-        img.save(out_path, "WEBP", quality=quality, method=6)
+        img.save(out_path, "WEBP", quality=quality, method=6, **icc)
     elif target_format == "HEIF":
         img.save(out_path, "HEIF", quality=quality)
     elif target_format == "PNG":
@@ -78,7 +92,7 @@ def _save_image(img: Image.Image, out_path: Path, target_format: str, quality: i
         if quality < 90 and img.mode in ("RGB", "RGBA"):
             method = Image.Quantize.FASTOCTREE if img.mode == "RGBA" else Image.Quantize.MEDIANCUT
             img = img.quantize(colors=256, method=method)
-        img.save(out_path, "PNG", optimize=True, compress_level=9)
+        img.save(out_path, "PNG", optimize=True, compress_level=9, **icc)
 
 
 def compress_image(path, output_dir, original_name: str, quality: int, output_choice: str) -> dict:
@@ -145,6 +159,69 @@ def compress_images(entries, output_dir, quality: int, output_choice: str, max_w
             executor.submit(
                 compress_image,
                 entry["path"], output_dir, entry["original_name"], quality, output_choice,
+            ): index
+            for index, entry in enumerate(entries)
+        }
+        for future in as_completed(future_to_index):
+            results[future_to_index[future]] = future.result()
+
+    return results
+
+
+# =========================================================
+# KONVERSI FORMAT
+# =========================================================
+
+def convert_image(path, output_dir, original_name: str, target_choice: str, quality: int) -> dict:
+    """Konversi satu gambar ke format lain. Tidak melempar error, hasilnya berupa dict."""
+    path, output_dir = Path(path), Path(output_dir)
+    result = {"name": original_name, "status": "failed", "error": None}
+
+    try:
+        original_size = path.stat().st_size
+
+        with Image.open(path) as source:
+            icc_profile = source.info.get("icc_profile")
+            # Perbaiki orientasi dari EXIF (foto HP sering miring)
+            img = ImageOps.exif_transpose(source)
+            img.load()
+
+        target_format = _FORMAT_BY_CHOICE[target_choice]
+        extension = _EXT_BY_CONVERT_CHOICE[target_choice]
+        out_name = f"{path.stem}{extension}"
+        out_path = output_dir / out_name
+
+        prepared = _prepare_image(img, target_format)
+        # PNG selalu lossless (kualitas dipaksa 100 supaya tidak ada pengurangan warna)
+        effective_quality = 100 if target_format == "PNG" else quality
+        _save_image(prepared, out_path, target_format, effective_quality, icc_profile)
+
+        result.update({
+            "status": "success",
+            "output": out_name,
+            "original_size": original_size,
+            "new_size": out_path.stat().st_size,
+            "saved_percent": 0,
+            "kept_original": False,
+            "badge": extension.lstrip(".").upper(),
+        })
+    except Exception as exc:  # noqa: BLE001 - satu file gagal tidak boleh menghentikan yang lain
+        result["error"] = _friendly_error(exc)
+
+    return result
+
+
+def convert_images(entries, output_dir, target_choice: str, quality: int, max_workers: int = 4) -> list:
+    """Konversi banyak gambar secara paralel. Urutan hasil sama dengan urutan input."""
+    results = [None] * len(entries)
+    if not entries:
+        return results
+
+    with ThreadPoolExecutor(max_workers=max(1, max_workers)) as executor:
+        future_to_index = {
+            executor.submit(
+                convert_image,
+                entry["path"], output_dir, entry["original_name"], target_choice, quality,
             ): index
             for index, entry in enumerate(entries)
         }

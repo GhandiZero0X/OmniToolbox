@@ -43,6 +43,9 @@
             <a class="nav-link {{ 'active' if ep == 'image.compress_page' }}" href="{{ url_for('image.compress_page') }}">Kompres Gambar</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link {{ 'active' if ep == 'image.convert_page' }}" href="{{ url_for('image.convert_page') }}">Konversi Gambar</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link {{ 'active' if ep == 'pdf.compress_page' }}" href="{{ url_for('pdf.compress_page') }}">Kompres PDF</a>
           </li>
         </ul>

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Konversi Gambar{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-arrow-left-right text-primary me-2"></i>Konversi Gambar</h1>
+    <p class="text-body-secondary mb-0">
+      Ubah format antara HEIC, JPG, JPEG, PNG, dan WebP. Cocok untuk foto iPhone (HEIC) yang tidak bisa dibuka di semua perangkat.
+    </p>
+  </div>
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('image.convert_process') }}" method="post" enctype="multipart/form-data"
+        data-accept="{{ accept }}" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret gambar ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas gambar di sini</p>
+        <p class="text-body-secondary small mb-0">
+          HEIC, HEIF, JPG, JPEG, PNG, WebP &middot; maksimal {{ max_files }} file &middot; total {{ max_mb }} MB
+        </p>
+        <input type="file" id="file-input" class="d-none" multiple accept="{{ accept }}">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-6">
+          <label for="target_format" class="form-label fw-semibold">Konversi ke</label>
+          <select class="form-select" id="target_format" name="target_format">
+            <option value="jpg" selected>JPG</option>
+            <option value="jpeg">JPEG</option>
+            <option value="png">PNG (lossless, mendukung transparansi)</option>
+            <option value="webp">WebP</option>
+            <option value="heic">HEIC</option>
+          </select>
+          <div class="form-text">JPG dan JPEG sama persis, hanya beda ekstensi. Transparansi diganti latar putih saat output JPG/JPEG.</div>
+        </div>
+        <div class="col-md-6" id="quality-group">
+          <label for="quality" class="form-label fw-semibold">
+            Kualitas: <output id="quality-value" for="quality">95</output>%
+          </label>
+          <input type="range" class="form-range" id="quality" name="quality" min="50" max="100" step="5" value="95"
+                 data-output="quality-value">
+          <div class="form-text">95 = hampir tanpa penurunan kualitas yang terlihat. Turunkan bila ingin ukuran lebih kecil.</div>
+        </div>
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Progres upload">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-arrow-repeat me-1"></i>Konversi Sekarang
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil konversi</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Format</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // PNG selalu lossless, jadi slider kualitas disembunyikan saat PNG dipilih
+  (function () {
+    var select = document.getElementById("target_format");
+    var group = document.getElementById("quality-group");
+    function sync() { group.classList.toggle("d-none", select.value === "png"); }
+    select.addEventListener("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}
