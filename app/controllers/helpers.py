@@ -1,17 +1,43 @@
-from flask import jsonify, url_for
+from pathlib import Path
+
+from flask import current_app, jsonify, request, url_for
 
 from ..services.archive_service import make_zip
-from ..utils.file_utils import human_size
+from ..utils.file_utils import human_size, new_job_id
 
 ZIP_NAME = "OmniToolbox_hasil.zip"
+PREVIEW_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
-def build_job_response(job_id: str, results: list, output_dir, show_savings: bool = True):
+def new_job_dirs():
+    """Buat job baru: (job_id, folder upload sementara, folder output)."""
+    cfg = current_app.config
+    job_id = new_job_id()
+    upload_dir = Path(cfg["UPLOAD_FOLDER"]) / job_id
+    output_dir = Path(cfg["OUTPUT_FOLDER"]) / job_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return job_id, upload_dir, output_dir
+
+
+def get_upload_files(max_files=None):
+    """Ambil file dari request. Mengembalikan (files, pesan_error)."""
+    limit = max_files or current_app.config["MAX_FILES_PER_REQUEST"]
+    files = [f for f in request.files.getlist("files") if f and f.filename]
+    if not files:
+        return None, "Belum ada file yang dipilih."
+    if len(files) > limit:
+        return None, f"Maksimal {limit} file sekali proses."
+    return files, None
+
+
+def build_job_response(job_id: str, results: list, output_dir, show_savings: bool = True,
+                       previews: bool = False):
     """
     Ubah hasil proses menjadi JSON untuk frontend (lengkap dengan link unduhan).
 
-    show_savings=True  -> untuk fitur kompres (menampilkan persen hemat)
-    show_savings=False -> untuk fitur konversi (ukuran bisa naik atau turun)
+    show_savings=True  -> fitur kompres (menampilkan persen hemat)
+    show_savings=False -> fitur konversi/edit (ukuran bisa naik atau turun)
+    previews=True      -> sertakan link pratinjau untuk hasil berupa gambar
     """
     success = [r for r in results if r["status"] == "success"]
     failed = [r for r in results if r["status"] != "success"]
@@ -20,6 +46,8 @@ def build_job_response(job_id: str, results: list, output_dir, show_savings: boo
         item["url"] = url_for("main.download", job_id=job_id, filename=item["output"])
         item["original_size_h"] = human_size(item["original_size"])
         item["new_size_h"] = human_size(item["new_size"])
+        if previews and Path(item["output"]).suffix.lower() in PREVIEW_EXTENSIONS:
+            item["preview_url"] = url_for("main.preview", job_id=job_id, filename=item["output"])
 
     # Lebih dari satu file berhasil: sediakan ZIP
     zip_url = None

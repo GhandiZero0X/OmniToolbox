@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Hapus Teks / Watermark{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-eraser text-warning me-2"></i>Hapus Teks / Watermark</h1>
+    <p class="text-body-secondary mb-2">
+      Hapus teks di area tertentu pada banyak gambar sekaligus. Area yang sama dipakai untuk semua gambar,
+      jadi cocok untuk watermark yang posisinya selalu sama.
+    </p>
+    <p class="small text-body-secondary mb-0">
+      <i class="bi bi-info-circle me-1"></i>Gunakan hanya pada gambar milikmu atau yang kamu punya izin untuk mengeditnya.
+      Hasil terbaik didapat pada teks sederhana di atas latar yang relatif polos.
+    </p>
+  </div>
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('image.watermark_process') }}" method="post" enctype="multipart/form-data"
+        data-accept="{{ accept }}" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret gambar ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas gambar di sini</p>
+        <p class="text-body-secondary small mb-0">
+          JPG, PNG, WebP, BMP, HEIC &middot; maksimal {{ max_files }} file &middot; total {{ max_mb }} MB
+        </p>
+        <input type="file" id="file-input" class="d-none" multiple accept="{{ accept }}">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <!-- Pemilih area teks -->
+      <div class="mt-4">
+        <label class="form-label fw-semibold">Area teks yang dihapus</label>
+
+        <div id="roi-no-preview" class="alert alert-secondary small d-none">
+          Pratinjau tidak tersedia untuk file HEIC di browser ini. Pilih area lewat tombol preset atau isi angka persen di bawah.
+        </div>
+        <div id="roi-hint" class="form-text mb-2 d-none">
+          Geser mouse (atau jari) di atas gambar untuk menggambar kotak merah di sekitar teks. Pratinjau memakai gambar pertama.
+        </div>
+
+        <div id="roi-stage" class="roi-stage">
+          <img id="roi-image" class="d-none" alt="Pratinjau gambar pertama">
+          <div id="roi-box" class="roi-box d-none"></div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <span class="small text-body-secondary align-self-center me-1">Preset:</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-roi="3,93,46,99">Kiri bawah</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-roi="25,93,75,99">Tengah bawah</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-roi="54,93,97,99">Kanan bawah</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-roi="3,1,46,7">Kiri atas</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-roi="54,1,97,7">Kanan atas</button>
+        </div>
+
+        <div class="row g-2 mt-2">
+          <div class="col-6 col-md-3">
+            <label for="roi-left" class="form-label small mb-1">Kiri (%)</label>
+            <input type="number" class="form-control form-control-sm" id="roi-left" name="roi_left" min="0" max="100" step="0.5" value="3">
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="roi-top" class="form-label small mb-1">Atas (%)</label>
+            <input type="number" class="form-control form-control-sm" id="roi-top" name="roi_top" min="0" max="100" step="0.5" value="93">
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="roi-right" class="form-label small mb-1">Kanan (%)</label>
+            <input type="number" class="form-control form-control-sm" id="roi-right" name="roi_right" min="0" max="100" step="0.5" value="46">
+          </div>
+          <div class="col-6 col-md-3">
+            <label for="roi-bottom" class="form-label small mb-1">Bawah (%)</label>
+            <input type="number" class="form-control form-control-sm" id="roi-bottom" name="roi_bottom" min="0" max="100" step="0.5" value="99">
+          </div>
+        </div>
+      </div>
+
+      <!-- Opsi dasar -->
+      <div class="row g-4 mt-1">
+        <div class="col-md-6">
+          <label for="mode" class="form-label fw-semibold">Warna teks</label>
+          <select class="form-select" id="mode" name="mode">
+            <option value="white" selected>Teks terang / putih</option>
+            <option value="dark">Teks gelap / hitam</option>
+            <option value="box">Hapus seluruh kotak (semua warna)</option>
+          </select>
+          <div class="form-text">"Seluruh kotak" dipakai jika teks berwarna atau tidak terdeteksi.</div>
+        </div>
+        <div class="col-md-6">
+          <label for="output_format" class="form-label fw-semibold">Format hasil</label>
+          <select class="form-select" id="output_format" name="output_format">
+            <option value="original" selected>Sama seperti aslinya</option>
+            <option value="png">PNG (lossless)</option>
+            <option value="jpg">JPG</option>
+          </select>
+          <div class="form-text">File HEIC otomatis menjadi JPG bila memilih "Sama seperti aslinya".</div>
+        </div>
+      </div>
+
+      <!-- Opsi lanjutan -->
+      <details class="mt-4">
+        <summary class="fw-semibold" style="cursor: pointer;">Pengaturan lanjutan</summary>
+        <div class="row g-4 mt-1">
+          <div class="col-md-6">
+            <label for="threshold" class="form-label">Ambang kecerahan teks: <output id="threshold-value" for="threshold">235</output></label>
+            <input type="range" class="form-range" id="threshold" name="threshold" min="150" max="250" step="1" value="235" data-output="threshold-value">
+            <div class="form-text">Turunkan jika sebagian teks tidak ikut terhapus. Berlaku untuk mode teks terang/gelap.</div>
+          </div>
+          <div class="col-md-6">
+            <label for="dilate" class="form-label">Pelebaran tepi: <output id="dilate-value" for="dilate">3</output> px</label>
+            <input type="range" class="form-range" id="dilate" name="dilate" min="0" max="8" step="1" value="3" data-output="dilate-value">
+            <div class="form-text">Naikkan jika masih ada sisa tepi huruf.</div>
+          </div>
+          <div class="col-md-6">
+            <label for="radius" class="form-label">Radius pengisian: <output id="radius-value" for="radius">5</output> px</label>
+            <input type="range" class="form-range" id="radius" name="radius" min="1" max="15" step="1" value="5" data-output="radius-value">
+            <div class="form-text">Seberapa jauh piksel sekitar dipakai untuk mengisi area teks.</div>
+          </div>
+          <div class="col-md-6">
+            <label for="quality" class="form-label">Kualitas JPG/WebP: <output id="quality-value" for="quality">95</output>%</label>
+            <input type="range" class="form-range" id="quality" name="quality" min="50" max="100" step="5" value="95" data-output="quality-value">
+          </div>
+        </div>
+      </details>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Progres upload">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-eraser-fill me-1"></i>Hapus Teks
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <p class="small text-body-secondary">Klik gambar mini untuk melihat hasilnya dalam ukuran penuh.</p>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Format</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/watermark.js') }}"></script>
+{% endblock %}

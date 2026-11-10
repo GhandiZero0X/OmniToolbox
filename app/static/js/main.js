@@ -44,6 +44,11 @@
     return dot >= 0 ? name.slice(dot).toLowerCase() : "";
   }
 
+  // Urutan alami: "2.jpg" sebelum "10.jpg"
+  function naturalCompare(a, b) {
+    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+  }
+
   function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -63,7 +68,7 @@
   });
 
   /* =========================================================
-   * Form upload + hasil (dipakai halaman kompres gambar & PDF)
+   * Form upload + hasil (dipakai semua halaman tool)
    * ======================================================= */
   const form = document.getElementById("tool-form");
   if (!form) return;
@@ -73,6 +78,7 @@
   const fileList = document.getElementById("file-list");
   const submitBtn = document.getElementById("submit-btn");
   const resetBtn = document.getElementById("reset-btn");
+  const sortBtn = document.getElementById("sort-btn");
   const alertBox = document.getElementById("alert-box");
   const progressWrap = document.getElementById("progress-wrap");
   const progressBar = document.getElementById("progress-bar");
@@ -87,6 +93,8 @@
     .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   const maxFiles = parseInt(form.dataset.maxFiles, 10) || 20;
   const maxBytes = (parseInt(form.dataset.maxMb, 10) || 200) * 1024 * 1024;
+  const reorderEnabled = form.dataset.reorder === "true"; // urutan file = urutan halaman
+  const submitHtml = submitBtn.innerHTML;                  // label asli tombol (dipulihkan setelah proses)
 
   let files = [];
   let busy = false;
@@ -105,16 +113,46 @@
     return files.reduce((sum, f) => sum + f.size, 0);
   }
 
+  function moveFile(index, delta) {
+    const target = index + delta;
+    if (busy || target < 0 || target >= files.length) return;
+    const [moved] = files.splice(index, 1);
+    files.splice(target, 0, moved);
+    renderFileList();
+  }
+
   function renderFileList() {
     fileList.replaceChildren();
 
     files.forEach((file, index) => {
       const li = el("li", "list-group-item");
+
+      if (reorderEnabled) {
+        li.append(el("span", "badge text-bg-primary page-number", String(index + 1)));
+      }
       li.append(
         el("i", "bi bi-file-earmark text-body-secondary"),
         el("span", "file-name", file.name),
         el("span", "badge text-bg-secondary", formatSize(file.size))
       );
+
+      if (reorderEnabled) {
+        const upBtn = el("button", "btn btn-sm btn-outline-secondary");
+        upBtn.type = "button";
+        upBtn.setAttribute("aria-label", "Naikkan " + file.name);
+        upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
+        upBtn.disabled = index === 0;
+        upBtn.addEventListener("click", () => moveFile(index, -1));
+
+        const downBtn = el("button", "btn btn-sm btn-outline-secondary");
+        downBtn.type = "button";
+        downBtn.setAttribute("aria-label", "Turunkan " + file.name);
+        downBtn.innerHTML = '<i class="bi bi-arrow-down"></i>';
+        downBtn.disabled = index === files.length - 1;
+        downBtn.addEventListener("click", () => moveFile(index, 1));
+
+        li.append(upBtn, downBtn);
+      }
 
       const removeBtn = el("button", "btn btn-sm btn-outline-danger");
       removeBtn.type = "button";
@@ -130,11 +168,16 @@
     });
 
     submitBtn.disabled = busy || files.length === 0;
+    if (sortBtn) sortBtn.classList.toggle("d-none", !(reorderEnabled && files.length > 1));
+
+    // Beri tahu skrip khusus halaman (misal pratinjau di halaman hapus watermark)
+    form.dispatchEvent(new CustomEvent("filesChanged", { detail: { files: files.slice() } }));
   }
 
   function addFiles(newFiles) {
     hideAlert();
     const problems = [];
+    const accepted = [];
 
     Array.from(newFiles).forEach((file) => {
       if (!allowedExt.includes(extOf(file.name))) {
@@ -144,8 +187,13 @@
       const duplicate = files.some(
         (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
       );
-      if (duplicate) return;
+      if (!duplicate) accepted.push(file);
+    });
 
+    // Halaman PDF: file yang baru dipilih diurutkan berdasarkan nama (1, 2, 10), lalu ditambahkan di akhir
+    if (reorderEnabled) accepted.sort(naturalCompare);
+
+    accepted.forEach((file) => {
       if (files.length >= maxFiles) {
         problems.push("Maksimal " + maxFiles + " file sekali proses");
         return;
@@ -190,6 +238,15 @@
     if (!busy) addFiles(event.dataTransfer.files);
   });
 
+  /* ---------- Urutkan berdasarkan nama ---------- */
+  if (sortBtn) {
+    sortBtn.addEventListener("click", () => {
+      if (busy) return;
+      files.sort(naturalCompare);
+      renderFileList();
+    });
+  }
+
   /* ---------- Reset ---------- */
   function resetAll() {
     if (busy) return;
@@ -209,7 +266,7 @@
     resetBtn.disabled = state;
     submitBtn.innerHTML = state
       ? '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Memproses...'
-      : '<i class="bi bi-lightning-charge-fill me-1"></i>Kompres Sekarang';
+      : submitHtml;
   }
 
   function setProgress(percent, label, indeterminate) {
@@ -222,13 +279,39 @@
   }
 
   /* ---------- Tampilkan hasil ---------- */
+  function renderNameCell(item) {
+    const cell = el("td");
+    cell.title = item.name;
+
+    const wrap = el("div", "d-flex align-items-center gap-2");
+    if (item.preview_url) {
+      const link = el("a");
+      link.href = item.preview_url;
+      link.target = "_blank";
+      link.rel = "noopener";
+      const thumb = el("img", "result-thumb");
+      thumb.src = item.preview_url;
+      thumb.alt = "Pratinjau " + item.name;
+      thumb.loading = "lazy";
+      link.append(thumb);
+      wrap.append(link);
+    }
+
+    const text = el("div", "min-w-0");
+    text.append(el("div", "text-truncate", item.name));
+    if (item.note) text.append(el("div", "small text-warning text-wrap", item.note));
+    wrap.append(text);
+
+    cell.append(wrap);
+    return cell;
+  }
+
   function renderResults(data) {
     resultsBody.replaceChildren();
 
     data.results.forEach((item) => {
       const tr = el("tr");
-      tr.append(el("td", "", item.name));
-      tr.firstChild.title = item.name;
+      tr.append(renderNameCell(item));
 
       if (item.status === "success") {
         tr.append(el("td", "text-end text-nowrap", item.original_size_h));
@@ -236,7 +319,7 @@
 
         const savedCell = el("td", "text-end");
         if (item.badge) {
-          // Fitur konversi: tampilkan format hasil, bukan persen hemat
+          // Fitur konversi/edit: tampilkan label (format atau jumlah halaman), bukan persen hemat
           savedCell.append(el("span", "badge text-bg-primary", item.badge));
         } else if (item.kept_original) {
           const badge = el("span", "badge text-bg-secondary", "Tetap");
@@ -295,7 +378,7 @@
     hideAlert();
     resultsCard.classList.add("d-none");
 
-    // FormData dari form (opsi), lalu file dari daftar yang dipilih
+    // FormData dari form (opsi), lalu file sesuai urutan di daftar
     const formData = new FormData(form);
     formData.delete("files");
     files.forEach((file) => formData.append("files", file, file.name));

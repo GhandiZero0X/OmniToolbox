@@ -5,6 +5,11 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+import img2pdf
+from PIL import Image, ImageOps
+
+from . import image_service  # juga mengaktifkan dukungan HEIC
+
 # preset Ghostscript -> kualitas
 PRESETS = {
     "screen": "Ukuran terkecil (72 dpi)",
@@ -126,3 +131,97 @@ def compress_pdfs(entries, output_dir, preset: str, gs_path: str, timeout: int =
             results[future_to_index[future]] = future.result()
 
     return results
+
+
+# =========================================================
+# GAMBAR -> PDF
+# =========================================================
+
+PAGE_SIZES = {
+    "image": "Sesuai ukuran gambar",
+    "a4": "A4 (otomatis portrait/landscape)",
+    "letter": "Letter (otomatis portrait/landscape)",
+}
+_PAGE_DIMENSIONS_MM = {"a4": (210, 297), "letter": (215.9, 279.4)}
+RENDER_DPI = 150  # dipakai saat halaman mengikuti ukuran gambar
+MAX_MARGIN_MM = 30
+
+
+def _prepare_page(entry: dict, work_dir: Path, index: int):
+    """
+    Siapkan satu gambar untuk dimasukkan ke PDF.
+    Mengembalikan (path_file, error). JPEG biasa dipakai apa adanya (tanpa kompres ulang);
+    format lain, gambar transparan, atau foto yang perlu diputar dikonversi ke JPEG kualitas 95.
+    """
+    path = entry["path"]
+    try:
+        with Image.open(path) as source:
+            orientation = source.getexif().get(274, 1)
+            if source.format == "JPEG" and source.mode in ("RGB", "L") and orientation in (0, 1):
+                return path, None
+            img = ImageOps.exif_transpose(source)
+            img.load()
+
+        prepared = image_service.prepare_image(img, "JPEG")  # alpha -> latar putih, CMYK -> RGB
+        out_path = work_dir / f"page_{index:04d}.jpg"
+        prepared.save(out_path, "JPEG", quality=95)
+        return out_path, None
+    except Exception as exc:  # noqa: BLE001
+        return None, image_service._friendly_error(exc)
+
+
+def _layout_function(page_size: str, margin_mm: float):
+    if page_size in _PAGE_DIMENSIONS_MM:
+        width_mm, height_mm = _PAGE_DIMENSIONS_MM[page_size]
+        margin = img2pdf.mm_to_pt(margin_mm)
+        return img2pdf.get_layout_fun(
+            pagesize=(img2pdf.mm_to_pt(width_mm), img2pdf.mm_to_pt(height_mm)),
+            border=(margin, margin),
+            fit=img2pdf.FitMode.into,   # gambar diperkecil agar muat, rasio tetap
+            auto_orient=True,           # halaman mengikuti orientasi gambar
+        )
+    return img2pdf.get_fixed_dpi_layout_fun((RENDER_DPI, RENDER_DPI))
+
+
+def images_to_pdf(entries, output_path, work_dir, page_size: str = "image",
+                  margin_mm: float = 0, max_workers: int = 4) -> dict:
+    """
+    Gabungkan gambar menjadi satu PDF, urutan halaman = urutan entries.
+
+    Mengembalikan:
+      {"pages": jumlah halaman, "used": [entry yang masuk PDF],
+       "failed": [{"name":..., "error":...}], "error": pesan atau None}
+    """
+    output_path, work_dir = Path(output_path), Path(work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    outcome = {"pages": 0, "used": [], "failed": [], "error": None}
+
+    if page_size not in PAGE_SIZES:
+        page_size = "image"
+
+    # Siapkan semua halaman secara paralel; executor.map menjaga urutan
+    with ThreadPoolExecutor(max_workers=max(1, max_workers)) as executor:
+        prepared = list(executor.map(
+            lambda pair: _prepare_page(pair[1], work_dir, pair[0]), enumerate(entries)
+        ))
+
+    page_paths = []
+    for entry, (page_path, error) in zip(entries, prepared):
+        if error:
+            outcome["failed"].append({"name": entry["original_name"], "error": error})
+        else:
+            page_paths.append(str(page_path))
+            outcome["used"].append(entry)
+
+    if not page_paths:
+        return outcome
+
+    try:
+        pdf_bytes = img2pdf.convert(page_paths, layout_fun=_layout_function(page_size, margin_mm))
+        output_path.write_bytes(pdf_bytes)
+        outcome["pages"] = len(page_paths)
+    except Exception as exc:  # noqa: BLE001
+        outcome["error"] = f"Gagal membuat PDF: {exc}"
+        outcome["used"] = []
+
+    return outcome

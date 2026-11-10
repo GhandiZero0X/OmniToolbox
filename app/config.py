@@ -25,6 +25,8 @@ class Config:
     MAX_UPLOAD_MB = _env_int("MAX_CONTENT_LENGTH_MB", 200)
     MAX_CONTENT_LENGTH = MAX_UPLOAD_MB * 1024 * 1024
     MAX_FILES_PER_REQUEST = _env_int("MAX_FILES_PER_REQUEST", 20)
+    # Gambar ke PDF biasanya berisi banyak halaman scan, jadi batasnya lebih longgar
+    MAX_FILES_MERGE = _env_int("MAX_FILES_MERGE", 100)
 
     # File hasil dihapus otomatis setelah sekian menit
     FILE_RETENTION_MINUTES = _env_int("FILE_RETENTION_MINUTES", 60)

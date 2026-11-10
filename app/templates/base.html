@@ -39,14 +39,22 @@
           <li class="nav-item">
             <a class="nav-link {{ 'active' if ep == 'main.index' }}" href="{{ url_for('main.index') }}">Beranda</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link {{ 'active' if ep == 'image.compress_page' }}" href="{{ url_for('image.compress_page') }}">Kompres Gambar</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('image.compress_page', 'image.convert_page', 'image.watermark_page') }}"
+               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Gambar</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item {{ 'active' if ep == 'image.compress_page' }}" href="{{ url_for('image.compress_page') }}"><i class="bi bi-image me-2"></i>Kompres Gambar</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'image.convert_page' }}" href="{{ url_for('image.convert_page') }}"><i class="bi bi-arrow-left-right me-2"></i>Konversi Gambar</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'image.watermark_page' }}" href="{{ url_for('image.watermark_page') }}"><i class="bi bi-eraser me-2"></i>Hapus Teks / Watermark</a></li>
+            </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link {{ 'active' if ep == 'image.convert_page' }}" href="{{ url_for('image.convert_page') }}">Konversi Gambar</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {{ 'active' if ep == 'pdf.compress_page' }}" href="{{ url_for('pdf.compress_page') }}">Kompres PDF</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('pdf.compress_page', 'pdf.images_to_pdf_page') }}"
+               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">PDF</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item {{ 'active' if ep == 'pdf.images_to_pdf_page' }}" href="{{ url_for('pdf.images_to_pdf_page') }}"><i class="bi bi-file-earmark-image me-2"></i>Gambar ke PDF</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'pdf.compress_page' }}" href="{{ url_for('pdf.compress_page') }}"><i class="bi bi-file-earmark-pdf me-2"></i>Kompres PDF</a></li>
+            </ul>
           </li>
         </ul>
         <button id="theme-toggle" class="btn btn-outline-secondary btn-sm" type="button" aria-label="Ganti tema">

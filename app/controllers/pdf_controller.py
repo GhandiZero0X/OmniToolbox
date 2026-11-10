@@ -1,12 +1,12 @@
 import shutil
-from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, render_template, request
+from werkzeug.utils import secure_filename
 
 from ..extensions import limiter
-from ..services import pdf_service
-from ..utils.file_utils import merge_results, new_job_id, save_uploaded_files
-from .helpers import build_job_response
+from ..services import image_service, pdf_service
+from ..utils.file_utils import merge_results, save_uploaded_files
+from .helpers import build_job_response, get_upload_files, new_job_dirs
 
 bp = Blueprint("pdf", __name__, url_prefix="/pdf")
 
@@ -34,20 +34,15 @@ def compress_process():
                   "lalu atur GHOSTSCRIPT_PATH di file .env."
         ), 500
 
-    files = [f for f in request.files.getlist("files") if f and f.filename]
-    if not files:
-        return jsonify(error="Belum ada file yang dipilih."), 400
-    if len(files) > cfg["MAX_FILES_PER_REQUEST"]:
-        return jsonify(error=f"Maksimal {cfg['MAX_FILES_PER_REQUEST']} file sekali proses."), 400
+    files, error = get_upload_files()
+    if error:
+        return jsonify(error=error), 400
 
     preset = request.form.get("preset", pdf_service.DEFAULT_PRESET)
     if preset not in pdf_service.PRESETS:
         preset = pdf_service.DEFAULT_PRESET
 
-    job_id = new_job_id()
-    upload_dir = Path(cfg["UPLOAD_FOLDER"]) / job_id
-    output_dir = Path(cfg["OUTPUT_FOLDER"]) / job_id
-    output_dir.mkdir(parents=True, exist_ok=True)
+    job_id, upload_dir, output_dir = new_job_dirs()
 
     try:
         entries = save_uploaded_files(
@@ -63,3 +58,85 @@ def compress_process():
 
     results = merge_results(entries, processed)
     return build_job_response(job_id, results, output_dir)
+
+
+# ---------------------------------------------------------
+# Gambar -> PDF
+# ---------------------------------------------------------
+
+def _clean_pdf_name(raw: str) -> str:
+    name = (raw or "").strip()
+    if name.lower().endswith(".pdf"):
+        name = name[:-4]
+    return secure_filename(name)[:80] or "dokumen"
+
+
+@bp.get("/images-to-pdf")
+def images_to_pdf_page():
+    return render_template(
+        "pdf/images_to_pdf.html",
+        max_files=current_app.config["MAX_FILES_MERGE"],
+        max_mb=current_app.config["MAX_UPLOAD_MB"],
+        accept=",".join(sorted(image_service.SUPPORTED_INPUT)),
+        page_sizes=pdf_service.PAGE_SIZES,
+    )
+
+
+@bp.post("/images-to-pdf/process")
+@limiter.limit("10 per minute")
+def images_to_pdf_process():
+    cfg = current_app.config
+
+    files, error = get_upload_files(cfg["MAX_FILES_MERGE"])
+    if error:
+        return jsonify(error=error), 400
+
+    page_size = request.form.get("page_size", "image")
+    if page_size not in pdf_service.PAGE_SIZES:
+        page_size = "image"
+
+    try:
+        margin_mm = float(request.form.get("margin", 0))
+    except (TypeError, ValueError):
+        margin_mm = 0
+    margin_mm = max(0, min(pdf_service.MAX_MARGIN_MM, margin_mm))
+
+    pdf_name = _clean_pdf_name(request.form.get("pdf_name"))
+    job_id, upload_dir, output_dir = new_job_dirs()
+    output_path = output_dir / f"{pdf_name}.pdf"
+
+    try:
+        entries = save_uploaded_files(files, upload_dir, image_service.SUPPORTED_INPUT)
+        valid_entries = [e for e in entries if e["path"] is not None]
+        outcome = pdf_service.images_to_pdf(
+            valid_entries, output_path, upload_dir / "_work",
+            page_size, margin_mm, cfg["IMAGE_WORKERS"],
+        )
+        used_size = sum(e["path"].stat().st_size for e in outcome["used"])
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    if outcome["error"]:
+        return jsonify(error=outcome["error"]), 500
+
+    results = []
+    if outcome["pages"]:
+        results.append({
+            "name": f"{pdf_name}.pdf",
+            "status": "success",
+            "output": output_path.name,
+            "original_size": used_size,
+            "new_size": output_path.stat().st_size,
+            "saved_percent": 0,
+            "kept_original": False,
+            "badge": f"{outcome['pages']} hal.",
+        })
+
+    # File yang ditolak saat upload + gambar yang gagal dibaca
+    for entry in entries:
+        if entry["path"] is None:
+            results.append({"name": entry["original_name"], "status": "failed", "error": entry["error"]})
+    for failure in outcome["failed"]:
+        results.append({"name": failure["name"], "status": "failed", "error": failure["error"]})
+
+    return build_job_response(job_id, results, output_dir, show_savings=False)

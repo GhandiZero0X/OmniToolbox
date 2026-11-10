@@ -229,3 +229,9 @@ def convert_images(entries, output_dir, target_choice: str, quality: int, max_wo
             results[future_to_index[future]] = future.result()
 
     return results
+
+
+# Alias publik agar service lain (PDF, watermark) bisa memakai ulang logika ini
+prepare_image = _prepare_image
+save_image = _save_image
+has_alpha = _has_alpha
