@@ -134,6 +134,7 @@ def remove_watermark(path, output_dir, original_name: str, options: WatermarkOpt
         prepared = image_service.prepare_image(final, target_format)
         quality = 100 if target_format == "PNG" else options.quality
         image_service.save_image(prepared, out_path, target_format, quality, icc_profile)
+        thumb = image_service.save_thumbnail(final, output_dir, path.stem)
 
         result.update({
             "status": "success",
@@ -143,6 +144,7 @@ def remove_watermark(path, output_dir, original_name: str, options: WatermarkOpt
             "saved_percent": 0,
             "kept_original": False,
             "badge": extension.lstrip(".").upper(),
+            "thumb": thumb,
         })
         if not found_text:
             result["note"] = "Tidak ada teks terdeteksi di area itu, gambar tidak berubah."

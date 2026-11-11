@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Upscale Foto{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-arrows-angle-expand text-secondary me-2"></i>Upscale Foto</h1>
+    <p class="text-body-secondary mb-0">
+      Perbesar resolusi gambar sampai 4x dengan AI (Real-ESRGAN) yang berjalan di GPU. Detail halus dan tepi garis dipulihkan,
+      bukan sekadar diperbesar.
+    </p>
+  </div>
+
+  {% if not runner_ready or not models %}
+  <div class="alert alert-warning d-flex gap-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+      <strong>Real-ESRGAN belum siap.</strong> {{ setup_hint }}
+      {% if runner_ready and not models %}<br>Program ditemukan, tetapi folder <code>models</code> kosong atau tidak lengkap.{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('image.upscale_process') }}" method="post" enctype="multipart/form-data"
+        data-accept="{{ accept }}" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret gambar ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas gambar di sini</p>
+        <p class="text-body-secondary small mb-0">
+          JPG, PNG, WebP, BMP, HEIC &middot; maksimal {{ max_files }} gambar &middot; tiap gambar maksimal {{ max_input_mp|round(1) }} megapiksel
+        </p>
+        <input type="file" id="file-input" class="d-none" multiple accept="{{ accept }}">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-6">
+          <label for="model" class="form-label fw-semibold">Jenis gambar</label>
+          <select class="form-select" id="model" name="model">
+            {% for key, label in models %}
+            <option value="{{ key }}" {{ 'selected' if loop.first }}>{{ label }}</option>
+            {% else %}
+            <option value="" disabled selected>Model belum tersedia</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Pilih "Ilustrasi / anime" untuk gambar kartun, komik, atau manga.</div>
+        </div>
+        <div class="col-md-3">
+          <label for="scale" class="form-label fw-semibold">Perbesar</label>
+          <select class="form-select" id="scale" name="scale">
+            {% for value in scales %}
+            <option value="{{ value }}" {{ 'selected' if value == 4 }}>{{ value }}x</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="output_format" class="form-label fw-semibold">Format hasil</label>
+          <select class="form-select" id="output_format" name="output_format">
+            <option value="jpg" selected>JPG</option>
+            <option value="png">PNG</option>
+            <option value="webp">WebP</option>
+          </select>
+        </div>
+        <div class="col-12" id="quality-group">
+          <label for="quality" class="form-label fw-semibold">Kualitas: <output id="quality-value" for="quality">95</output>%</label>
+          <input type="range" class="form-range" id="quality" name="quality" min="50" max="100" step="5" value="95"
+                 data-output="quality-value">
+          <div class="form-text">Berlaku untuk JPG dan WebP. PNG selalu lossless, tetapi ukurannya jauh lebih besar.</div>
+        </div>
+      </div>
+
+      <div class="alert alert-secondary small mt-4 mb-0">
+        <i class="bi bi-hourglass-split me-1"></i>
+        Upscale cukup berat: satu gambar bisa memakan beberapa detik sampai beberapa menit tergantung GPU.
+        Halaman ini menampilkan progres, jadi kamu bisa menunggu di sini sampai selesai.
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Progres proses">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-stars me-1"></i>Upscale Sekarang
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil upscale</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <p class="small text-body-secondary">Klik gambar mini untuk melihat hasilnya dalam ukuran penuh.</p>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Format</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // PNG selalu lossless, jadi slider kualitas disembunyikan saat PNG dipilih
+  (function () {
+    var select = document.getElementById("output_format");
+    var group = document.getElementById("quality-group");
+    function sync() { group.classList.toggle("d-none", select.value === "png"); }
+    select.addEventListener("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

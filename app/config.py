@@ -14,8 +14,16 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
+    BASE_DIR = BASE_DIR
 
     # Folder kerja (dibuat otomatis saat app start)
     UPLOAD_FOLDER = BASE_DIR / "uploads"
@@ -38,3 +46,19 @@ class Config:
     # Ghostscript: kosongkan agar dicari otomatis
     GHOSTSCRIPT_PATH = os.getenv("GHOSTSCRIPT_PATH", "")
     PDF_TIMEOUT_SECONDS = _env_int("PDF_TIMEOUT_SECONDS", 300)
+
+    # ----- Upscale (Real-ESRGAN ncnn Vulkan) -----
+    # Kosongkan agar dicari otomatis di tools/realesrgan-ncnn-vulkan atau PATH
+    REALESRGAN_PATH = os.getenv("REALESRGAN_PATH", "")
+    # RTX 3050 4GB: maksimal 2 proses bersamaan agar tidak kehabisan VRAM
+    UPSCALE_WORKERS = _env_int("UPSCALE_WORKERS", 2)
+    # Ukuran tile: kecil = hemat VRAM tapi lebih lambat. 0 = otomatis
+    UPSCALE_TILE_SIZE = _env_int("UPSCALE_TILE_SIZE", 128)
+    UPSCALE_GPU_ID = os.getenv("UPSCALE_GPU_ID", "")
+    UPSCALE_MAX_FILES = _env_int("UPSCALE_MAX_FILES", 10)
+    # Batas ukuran gambar (megapiksel) agar proses tidak berjam-jam / kehabisan memori
+    UPSCALE_MAX_INPUT_MP = _env_float("UPSCALE_MAX_INPUT_MP", 4.0)
+    UPSCALE_MAX_OUTPUT_MP = _env_float("UPSCALE_MAX_OUTPUT_MP", 64.0)
+    # Jumlah gambar maksimal yang boleh menunggu di antrean (semua pengguna)
+    UPSCALE_MAX_QUEUE = _env_int("UPSCALE_MAX_QUEUE", 30)
+    UPSCALE_TIMEOUT_SECONDS = _env_int("UPSCALE_TIMEOUT_SECONDS", 900)

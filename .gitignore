@@ -1,4 +1,4 @@
-﻿# ===== Python =====
+# ===== Python =====
 venv/
 .venv/
 __pycache__/
@@ -24,9 +24,12 @@ output/
 pdf/input/
 pdf/output/
 
-# ===== Model upscale (file besar, unduh terpisah) =====
+# ===== Program & model upscale (besar, dipasang lewat setup_realesrgan.py) =====
+tools/
 *.pth
 *.onnx
+*.bin
+*.param
 
 # ===== Editor & OS =====
 .vscode/

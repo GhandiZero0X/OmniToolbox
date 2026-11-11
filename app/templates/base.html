@@ -40,12 +40,13 @@
             <a class="nav-link {{ 'active' if ep == 'main.index' }}" href="{{ url_for('main.index') }}">Beranda</a>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('image.compress_page', 'image.convert_page', 'image.watermark_page') }}"
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('image.compress_page', 'image.convert_page', 'image.watermark_page', 'image.upscale_page') }}"
                href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Gambar</a>
             <ul class="dropdown-menu">
               <li><a class="dropdown-item {{ 'active' if ep == 'image.compress_page' }}" href="{{ url_for('image.compress_page') }}"><i class="bi bi-image me-2"></i>Kompres Gambar</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'image.convert_page' }}" href="{{ url_for('image.convert_page') }}"><i class="bi bi-arrow-left-right me-2"></i>Konversi Gambar</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'image.watermark_page' }}" href="{{ url_for('image.watermark_page') }}"><i class="bi bi-eraser me-2"></i>Hapus Teks / Watermark</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'image.upscale_page' }}" href="{{ url_for('image.upscale_page') }}"><i class="bi bi-arrows-angle-expand me-2"></i>Upscale Foto</a></li>
             </ul>
           </li>
           <li class="nav-item dropdown">

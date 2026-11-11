@@ -42,6 +42,15 @@
       </a>
     </div>
     <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('image.upscale_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-secondary-subtle text-secondary-emphasis"><i class="bi bi-arrows-angle-expand"></i></div>
+          <h3 class="h5 mt-3">Upscale Foto</h3>
+          <p class="text-body-secondary mb-0">Perbesar resolusi foto hingga 4x dengan AI (Real-ESRGAN) yang memakai GPU.</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
       <a href="{{ url_for('pdf.images_to_pdf_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-file-earmark-image"></i></div>
@@ -69,7 +78,6 @@
       ('bi-camera-video', 'MOV ke MP4 / MP3'),
       ('bi-file-earmark-word', 'Word ke PDF'),
       ('bi-files', 'Gabung PDF'),
-      ('bi-arrows-angle-expand', 'Upscale Foto'),
       ('bi-file-earmark-zip', 'Zip Folder'),
     ] %}
     <div class="col-6 col-md-4 col-lg-2">

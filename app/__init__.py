@@ -5,6 +5,7 @@ from flask import Flask, jsonify
 
 from .config import Config
 from .extensions import limiter
+from .services.job_service import JobManager
 from .utils.file_utils import cleanup_old_jobs
 
 _last_cleanup = 0.0
@@ -18,6 +19,12 @@ def create_app(config_class=Config) -> Flask:
         Path(folder).mkdir(parents=True, exist_ok=True)
 
     limiter.init_app(app)
+
+    # Antrean tugas berat (upscale). Jumlah worker = batas proses GPU bersamaan.
+    app.extensions["job_manager"] = JobManager(
+        max_workers=app.config["UPSCALE_WORKERS"],
+        max_queue=app.config["UPSCALE_MAX_QUEUE"],
+    )
 
     # Daftarkan controller (routes)
     from .controllers.image_controller import bp as image_bp
@@ -40,6 +47,7 @@ def create_app(config_class=Config) -> Flask:
             [app.config["UPLOAD_FOLDER"], app.config["OUTPUT_FOLDER"]],
             app.config["FILE_RETENTION_MINUTES"],
         )
+        app.extensions["job_manager"].purge(app.config["FILE_RETENTION_MINUTES"])
 
     @app.errorhandler(413)
     def too_large(_error):

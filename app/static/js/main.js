@@ -269,13 +269,17 @@
       : submitHtml;
   }
 
-  function setProgress(percent, label, indeterminate) {
+  function setProgress(percent, label, indeterminate, percentLabel) {
     progressWrap.classList.remove("d-none");
     progressBar.style.width = percent + "%";
     progressBar.classList.toggle("progress-bar-striped", !!indeterminate);
     progressBar.classList.toggle("progress-bar-animated", !!indeterminate);
     statusText.textContent = label;
-    percentText.textContent = indeterminate ? "" : Math.round(percent) + "%";
+    if (percentLabel !== undefined) {
+      percentText.textContent = percentLabel;
+    } else {
+      percentText.textContent = indeterminate ? "" : Math.round(percent) + "%";
+    }
   }
 
   /* ---------- Tampilkan hasil ---------- */
@@ -290,7 +294,7 @@
       link.target = "_blank";
       link.rel = "noopener";
       const thumb = el("img", "result-thumb");
-      thumb.src = item.preview_url;
+      thumb.src = item.thumb_url || item.preview_url;
       thumb.alt = "Pratinjau " + item.name;
       thumb.loading = "lazy";
       link.append(thumb);
@@ -299,6 +303,7 @@
 
     const text = el("div", "min-w-0");
     text.append(el("div", "text-truncate", item.name));
+    if (item.info) text.append(el("div", "small text-body-secondary text-wrap", item.info));
     if (item.note) text.append(el("div", "small text-warning text-wrap", item.note));
     wrap.append(text);
 
@@ -365,6 +370,59 @@
     resultsCard.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  /* ---------- Proses latar belakang (upscale): pantau progres ---------- */
+  const pollInterval = () => parseInt(form.dataset.pollMs, 10) || 1500;   // bisa diatur lewat data-poll-ms
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  function finishWithError(message) {
+    setBusy(false);
+    progressWrap.classList.add("d-none");
+    showAlert(message);
+  }
+
+  async function pollJob(statusUrl) {
+    let failures = 0;
+    setProgress(0, "Menunggu giliran...", true, "");
+
+    for (;;) {
+      await sleep(pollInterval());
+
+      let data;
+      try {
+        const response = await fetch(statusUrl, { headers: { Accept: "application/json" } });
+        if (response.status === 404) {
+          finishWithError("Proses tidak ditemukan atau sudah kedaluwarsa. Silakan unggah ulang.");
+          return;
+        }
+        data = await response.json();
+        failures = 0;
+      } catch (error) {
+        failures += 1;
+        if (failures >= 5) {
+          finishWithError("Koneksi ke server terputus saat memantau progres. Muat ulang halaman lalu coba lagi.");
+          return;
+        }
+        continue;
+      }
+
+      if (data.state === "done") {
+        setBusy(false);
+        progressWrap.classList.add("d-none");
+        renderResults(data);
+        return;
+      }
+
+      const total = data.total || 0;
+      const percent = total ? (data.done / total) * 100 : 0;
+      setProgress(
+        percent,
+        "Memproses gambar " + data.done + " dari " + total + "...",
+        data.done === 0,
+        data.done + "/" + total
+      );
+    }
+  }
+
   /* ---------- Kirim ke server ---------- */
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -398,10 +456,19 @@
     });
 
     xhr.addEventListener("load", () => {
+      const data = xhr.response;
+
+      // Server menerima tugas dan memprosesnya di latar belakang: pantau progresnya
+      if (xhr.status === 202 && data && data.status_url) {
+        files = [];
+        renderFileList();
+        pollJob(data.status_url);
+        return;
+      }
+
       setBusy(false);
       progressWrap.classList.add("d-none");
 
-      const data = xhr.response;
       if (xhr.status >= 200 && xhr.status < 300 && data && data.results) {
         renderResults(data);
         files = [];

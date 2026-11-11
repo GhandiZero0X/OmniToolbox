@@ -15,7 +15,8 @@
 ### 🖼️ Image Suite
 * **Format Converter:** Convert between **JPG, JPEG, PNG, WebP, and HEIC** in any direction.
 * **Image Compression:** Reduce the file size of JPG, JPEG, PNG, WebP, and HEIC images with minimal visible quality loss.
-* **Image Upscaler:** Increase image resolution (2x / 4x) using super-resolution models.
+* **Image Upscaler:** Enlarge images 2x / 3x / 4x with AI ([Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) ncnn Vulkan, runs on your GPU). Photo and anime/illustration models, progress shown live while it runs in the background.
+* **Text / Watermark Remover:** Erase text in a chosen area (drag a box on the preview) across many images at once, using OpenCV inpainting.
 
 ### 🎬 Media Suite (Video & Audio)
 * **Video Converter:** Convert **MOV to MP4** (H.264 + AAC) for wide compatibility.
@@ -24,7 +25,7 @@
 ### 📄 Document Suite
 * **Word to PDF:** Convert `.doc` / `.docx` files to PDF while keeping the layout intact.
 * **PDF to Word:** Convert PDF files to editable `.docx`.
-* **Image to PDF:** Combine one or more images into a single PDF.
+* **Image to PDF:** Combine many images into one PDF. Reorder pages with arrow buttons, choose page size (image size / A4 / Letter) and margin. JPEGs are embedded without re-compression.
 * **PDF to Image:** Export each PDF page as **JPG** or **PNG**.
 * **Merge PDF:** Combine multiple PDF files into one document.
 * **Compress PDF:** Shrink large PDF files for easier sharing.
@@ -47,7 +48,8 @@
 | Feature | Library / Tool |
 |---|---|
 | Image convert & compress | `Pillow`, `pillow-heif` |
-| Image upscale | `opencv-contrib-python` (`dnn_superres`); Real-ESRGAN optional for higher quality (GPU recommended) |
+| Remove text / watermark | `opencv-python-headless` + `numpy` (`cv2.inpaint`) |
+| Image upscale | **Real-ESRGAN ncnn Vulkan** (external program installed by `setup_realesrgan.py`; needs a Vulkan-capable GPU, no PyTorch required) |
 | Video & audio | **FFmpeg** (system binary, via `subprocess` or `ffmpeg-python`) |
 | Word → PDF | **LibreOffice** (headless mode, system binary) |
 | PDF → Word | `pdf2docx` |
@@ -58,6 +60,8 @@
 | Zip | `zipfile` (Python standard library) |
 
 > ⚠️ **Note:** FFmpeg, LibreOffice, and Ghostscript are **system programs**, not Python packages. They must be installed separately (see below).
+>
+> Install only **one** OpenCV package (`opencv-python-headless`). Having several (`opencv-python`, `opencv-contrib-python`) installed together can break `import cv2`.
 
 ---
 
@@ -67,6 +71,7 @@
 * [FFmpeg](https://ffmpeg.org/download.html)
 * [LibreOffice](https://www.libreoffice.org/download/download/)
 * [Ghostscript](https://ghostscript.com/releases/gsdnld.html)
+* *(Only for Upscale)* A GPU with Vulkan support (NVIDIA / AMD / Intel Arc) and an up-to-date graphics driver
 
 Install the system tools:
 
@@ -94,6 +99,23 @@ ffmpeg -version
 soffice --version
 gs --version
 ```
+
+---
+
+### 🔍 Upscale setup (Real-ESRGAN)
+
+The upscaler uses the standalone `realesrgan-ncnn-vulkan` program. Install it once (about 47 MB):
+
+```bash
+python setup_realesrgan.py
+```
+
+It downloads the build for your OS into `tools/realesrgan-ncnn-vulkan/` and the app finds it automatically.
+If the download is blocked, download the ZIP manually from the
+[Real-ESRGAN releases](https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.5.0) and run
+`python setup_realesrgan.py --zip path/to/file.zip`. You can also point `REALESRGAN_PATH` in `.env` to the program.
+
+> Upscaling is heavy. Keep `UPSCALE_WORKERS` at **2 or lower on a 4 GB GPU** (e.g. RTX 3050), otherwise it may run out of VRAM.
 
 ---
 
@@ -153,6 +175,15 @@ FILE_RETENTION_MINUTES=60
 FFMPEG_PATH=ffmpeg
 LIBREOFFICE_PATH=soffice
 GHOSTSCRIPT_PATH=gs
+
+# Upscale (Real-ESRGAN)
+REALESRGAN_PATH=              # empty = auto-detect in tools/realesrgan-ncnn-vulkan
+UPSCALE_WORKERS=2             # images processed at the same time (GPU safety limit)
+UPSCALE_TILE_SIZE=128         # smaller = less VRAM, slower
+UPSCALE_MAX_FILES=10
+UPSCALE_MAX_INPUT_MP=4        # max megapixels per input image
+UPSCALE_MAX_OUTPUT_MP=64
+UPSCALE_MAX_QUEUE=30
 ```
 
 ---
@@ -162,52 +193,17 @@ GHOSTSCRIPT_PATH=gs
 ```text
 omni-toolbox/
 ├── app/
-│   ├── __init__.py              # Flask app factory
-│   ├── config.py                # Pengaturan (limit upload, path binary, dll)
-│   │
-│   ├── controllers/             # BACKEND: routes / penerima request
-│   │   ├── __init__.py
-│   │   ├── main_controller.py   # Halaman utama
-│   │   ├── image_controller.py
-│   │   ├── pdf_controller.py
-│   │   ├── media_controller.py
-│   │   └── archive_controller.py
-│   │
-│   ├── services/                # BACKEND: logika pemrosesan file
-│   │   ├── __init__.py
-│   │   ├── image_service.py     # <- dari main.py kamu
-│   │   ├── pdf_service.py       # <- dari compresPdf.py kamu
-│   │   ├── media_service.py
-│   │   └── archive_service.py
-│   │
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   └── file_utils.py        # Validasi ekstensi, nama file aman, hapus file lama
-│   │
-│   ├── templates/               # FRONTEND: halaman HTML (Jinja2)
-│   │   ├── base.html            # Layout utama (navbar, footer)
-│   │   ├── index.html           # Dashboard semua tool
-│   │   ├── image/
-│   │   │   └── compress.html
-│   │   └── pdf/
-│   │       └── compress.html
-│   │
-│   └── static/                  # FRONTEND: aset statis
-│       ├── css/style.css
-│       ├── js/main.js
-│       └── img/
-│
-├── uploads/                     # File upload sementara (jangan di-commit)
-├── outputs/                     # Hasil proses sementara (jangan di-commit)
-├── legacy/                      # Simpan script terminal lamamu di sini
-│   ├── main.py
-│   └── compresPdf.py
-│
-├── .env
-├── .env.example
-├── .gitignore
+│   ├── __init__.py          # Flask app factory
+│   ├── controllers/         # Routes / request handling (C)
+│   ├── models/              # Data & job models (M)
+│   ├── services/            # Processing logic (image, media, document, archive)
+│   ├── templates/           # Jinja2 templates (V)
+│   └── static/              # CSS, JS, images
+├── uploads/                 # Temporary uploaded files
+├── outputs/                 # Temporary processed files
 ├── requirements.txt
-├── run.py                       # Titik masuk untuk menjalankan app
+├── .env.example
+├── run.py
 └── README.md
 ```
 
@@ -239,21 +235,23 @@ docker build -t omni-toolbox .
 docker run -p 8000:8000 --env-file .env omni-toolbox
 ```
 
-> Video conversion, Word → PDF, and upscaling are CPU-heavy. Use a longer request timeout and consider a background job queue (Celery + Redis) for large files.
+> Video conversion and Word → PDF are CPU-heavy: use a longer request timeout. Upscaling already runs in a background queue, but its job status is kept **in memory**, so run it with a **single worker process** (`gunicorn -w 1 --threads 4`). For multiple workers or servers, move the queue to Celery + Redis.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Image converter & compressor
-- [ ] Merge PDF, Image → PDF, PDF → Image
-- [ ] Compress PDF
+- [x] Image converter & compressor
+- [x] Image → PDF
+- [ ] Merge PDF, PDF → Image
+- [x] Compress PDF
+- [x] Text / watermark remover
 - [ ] Zip folder
 - [ ] MOV → MP4 & MP3 extractor
 - [ ] Word ↔ PDF
-- [ ] Image upscaler
-- [ ] Background job queue for large files
-- [ ] Batch processing & drag-and-drop upload
+- [x] Image upscaler (Real-ESRGAN, background queue with live progress)
+- [ ] Background job queue shared across workers (Celery + Redis)
+- [x] Batch processing & drag-and-drop upload
 
 ---
 

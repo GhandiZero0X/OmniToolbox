@@ -1,11 +1,13 @@
 import shutil
+from functools import partial
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request, url_for
 
 from ..extensions import limiter
-from ..services import image_service, watermark_service
+from ..services import image_service, upscale_service, watermark_service
+from ..services.job_service import Job
 from ..utils.file_utils import merge_results, save_uploaded_files
-from .helpers import build_job_response, get_upload_files, new_job_dirs
+from .helpers import build_job_payload, build_job_response, get_upload_files, new_job_dirs
 
 bp = Blueprint("image", __name__, url_prefix="/image")
 
@@ -157,3 +159,110 @@ def watermark_process():
 
     results = merge_results(entries, processed)
     return build_job_response(job_id, results, output_dir, show_savings=False, previews=True)
+
+
+# ---------------------------------------------------------
+# Upscale foto (Real-ESRGAN) - berjalan di latar belakang
+# ---------------------------------------------------------
+
+@bp.get("/upscale")
+def upscale_page():
+    cfg = current_app.config
+    runner = upscale_service.get_runner(cfg)
+    context = _page_context()
+    context.update(
+        accept=",".join(sorted(upscale_service.SUPPORTED_INPUT)),
+        max_files=cfg["UPSCALE_MAX_FILES"],
+        max_input_mp=cfg["UPSCALE_MAX_INPUT_MP"],
+        models=upscale_service.available_models(runner),
+        runner_ready=runner is not None,
+        setup_hint=upscale_service.SETUP_HINT,
+        scales=upscale_service.SCALES,
+    )
+    return render_template("image/upscale.html", **context)
+
+
+@bp.post("/upscale/process")
+@limiter.limit("5 per minute")
+def upscale_process():
+    cfg = current_app.config
+
+    runner = upscale_service.get_runner(cfg)
+    models = [name for name, _label in upscale_service.available_models(runner)]
+    if runner is None or not models:
+        return jsonify(error=upscale_service.SETUP_HINT), 503
+
+    files, error = get_upload_files(cfg["UPSCALE_MAX_FILES"])
+    if error:
+        return jsonify(error=error), 400
+
+    manager = current_app.extensions["job_manager"]
+    if not manager.has_room(len(files)):
+        return jsonify(error="Antrean upscale sedang penuh. Coba lagi beberapa menit lagi."), 503
+
+    model = request.form.get("model", upscale_service.DEFAULT_MODEL)
+    if model not in models:
+        model = models[0]
+    try:
+        scale = int(request.form.get("scale", 4))
+    except (TypeError, ValueError):
+        scale = 4
+    if scale not in upscale_service.SCALES:
+        scale = 4
+    output_format = request.form.get("output_format", "jpg")
+    if output_format not in upscale_service.OUTPUT_FORMATS:
+        output_format = "jpg"
+
+    options = upscale_service.UpscaleOptions(
+        model=model, scale=scale, output_format=output_format,
+        quality=int(_form_number("quality", 95, 50, 100)),
+    )
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+    try:
+        entries = save_uploaded_files(files, upload_dir, upscale_service.SUPPORTED_INPUT)
+    except Exception:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+        raise
+
+    max_input_px = int(cfg["UPSCALE_MAX_INPUT_MP"] * 1_000_000)
+    max_output_px = int(cfg["UPSCALE_MAX_OUTPUT_MP"] * 1_000_000)
+    work_dir = upload_dir / "_work"
+
+    tasks = [
+        (
+            entry["original_name"],
+            partial(
+                upscale_service.upscale_image, entry["path"], output_dir, entry["original_name"],
+                options, runner, work_dir, max_input_px, max_output_px,
+            ),
+        )
+        for entry in entries if entry["path"] is not None
+    ]
+
+    job = Job(job_id, entries, output_dir, total=len(tasks))
+    manager.submit(job, tasks, on_finish=lambda: shutil.rmtree(upload_dir, ignore_errors=True))
+
+    return jsonify(
+        job_id=job_id,
+        total=len(tasks),
+        status_url=url_for("image.upscale_status", job_id=job_id),
+    ), 202
+
+
+@bp.get("/upscale/status/<job_id>")
+@limiter.exempt   # dipanggil berulang oleh browser untuk memantau progres
+def upscale_status(job_id):
+    from ..utils.file_utils import is_valid_job_id
+
+    job = current_app.extensions["job_manager"].get(job_id) if is_valid_job_id(job_id) else None
+    if job is None:
+        return jsonify(error="Proses tidak ditemukan atau sudah kedaluwarsa."), 404
+
+    if job.state != "done":
+        return jsonify(state="running", done=job.done, total=job.total)
+
+    payload = build_job_payload(
+        job_id, job.final_results(), job.output_dir, show_savings=False, previews=True
+    )
+    return jsonify(state="done", **payload)

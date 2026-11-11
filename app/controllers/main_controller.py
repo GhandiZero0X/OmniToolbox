@@ -2,6 +2,7 @@ from pathlib import Path
 
 from flask import Blueprint, abort, current_app, render_template, send_from_directory
 
+from ..extensions import limiter
 from ..utils.file_utils import is_valid_job_id
 from .helpers import PREVIEW_EXTENSIONS
 
@@ -23,12 +24,14 @@ def index():
 
 
 @bp.get("/download/<job_id>/<filename>")
+@limiter.exempt
 def download(job_id, filename):
     """Unduh file hasil proses. send_from_directory menolak path traversal."""
     return send_from_directory(_job_directory(job_id), filename, as_attachment=True)
 
 
 @bp.get("/preview/<job_id>/<filename>")
+@limiter.exempt
 def preview(job_id, filename):
     """Tampilkan hasil berupa gambar langsung di browser (hanya JPG/PNG/WebP)."""
     if Path(filename).suffix.lower() not in PREVIEW_EXTENSIONS:

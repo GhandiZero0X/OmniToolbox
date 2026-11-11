@@ -235,3 +235,21 @@ def convert_images(entries, output_dir, target_choice: str, quality: int, max_wo
 prepare_image = _prepare_image
 save_image = _save_image
 has_alpha = _has_alpha
+
+
+THUMB_SIZE = 160
+
+
+def save_thumbnail(img: Image.Image, output_dir, stem: str):
+    """
+    Simpan gambar mini (JPG) untuk tabel hasil dan kembalikan nama file-nya.
+    PERHATIAN: img diperkecil di tempat (in-place), jadi panggil setelah file utama disimpan.
+    """
+    try:
+        img.thumbnail((THUMB_SIZE, THUMB_SIZE))
+        small = _prepare_image(img, "JPEG")
+        name = f"thumb_{stem}.jpg"
+        small.save(Path(output_dir) / name, "JPEG", quality=80)
+        return name
+    except Exception:  # noqa: BLE001 - thumbnail hanya pelengkap
+        return None

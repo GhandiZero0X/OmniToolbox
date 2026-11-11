@@ -30,15 +30,17 @@ def get_upload_files(max_files=None):
     return files, None
 
 
-def build_job_response(job_id: str, results: list, output_dir, show_savings: bool = True,
-                       previews: bool = False):
+def build_job_payload(job_id: str, results: list, output_dir, show_savings: bool = True,
+                      previews: bool = False) -> dict:
     """
-    Ubah hasil proses menjadi JSON untuk frontend (lengkap dengan link unduhan).
+    Susun data hasil proses untuk frontend (lengkap dengan link unduhan).
+    Aman dipanggil berulang kali untuk job yang sama (ZIP hanya dibuat sekali).
 
     show_savings=True  -> fitur kompres (menampilkan persen hemat)
     show_savings=False -> fitur konversi/edit (ukuran bisa naik atau turun)
     previews=True      -> sertakan link pratinjau untuk hasil berupa gambar
     """
+    output_dir = Path(output_dir)
     success = [r for r in results if r["status"] == "success"]
     failed = [r for r in results if r["status"] != "success"]
 
@@ -48,22 +50,26 @@ def build_job_response(job_id: str, results: list, output_dir, show_savings: boo
         item["new_size_h"] = human_size(item["new_size"])
         if previews and Path(item["output"]).suffix.lower() in PREVIEW_EXTENSIONS:
             item["preview_url"] = url_for("main.preview", job_id=job_id, filename=item["output"])
+            if item.get("thumb"):
+                item["thumb_url"] = url_for("main.preview", job_id=job_id, filename=item["thumb"])
 
     # Lebih dari satu file berhasil: sediakan ZIP
     zip_url = None
     if len(success) >= 2:
-        make_zip(output_dir / ZIP_NAME, [output_dir / item["output"] for item in success])
+        zip_path = output_dir / ZIP_NAME
+        if not zip_path.exists():
+            make_zip(zip_path, [output_dir / item["output"] for item in success])
         zip_url = url_for("main.download", job_id=job_id, filename=ZIP_NAME)
 
     total_original = sum(item["original_size"] for item in success)
     total_new = sum(item["new_size"] for item in success)
     saved_percent = (1 - total_new / total_original) * 100 if total_original else 0
 
-    return jsonify(
-        job_id=job_id,
-        results=results,
-        zip_url=zip_url,
-        summary={
+    return {
+        "job_id": job_id,
+        "results": results,
+        "zip_url": zip_url,
+        "summary": {
             "success": len(success),
             "failed": len(failed),
             "original_size_h": human_size(total_original),
@@ -71,4 +77,10 @@ def build_job_response(job_id: str, results: list, output_dir, show_savings: boo
             "saved_percent": round(max(saved_percent, 0.0), 1),
             "show_savings": show_savings,
         },
-    )
+    }
+
+
+def build_job_response(job_id: str, results: list, output_dir, show_savings: bool = True,
+                       previews: bool = False):
+    """Versi JSON dari build_job_payload (untuk proses yang selesai dalam satu request)."""
+    return jsonify(build_job_payload(job_id, results, output_dir, show_savings, previews))
