@@ -78,3 +78,6 @@ class Config:
     FFMPEG_PATH = os.getenv("FFMPEG_PATH", "")
     VIDEO_TIMEOUT_SECONDS = _env_int("VIDEO_TIMEOUT_SECONDS", 600)
     VIDEO_WORKERS = _env_int("VIDEO_WORKERS", 2)
+    
+    # ----- Excel & PowerPoint <-> PDF -----
+    PDF_TO_PPT_MAX_PAGES = _env_int("PDF_TO_PPT_MAX_PAGES", 50)

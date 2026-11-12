@@ -32,12 +32,14 @@ def create_app(config_class=Config) -> Flask:
     from .controllers.media_controller import bp as media_bp
     from .controllers.pdf_controller import bp as pdf_bp
     from .controllers.zip_controller import bp as zip_bp
+    from .controllers.office_controller import bp as office_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(image_bp)
     app.register_blueprint(pdf_bp)
     app.register_blueprint(zip_bp)
     app.register_blueprint(media_bp)
+    app.register_blueprint(office_bp)
 
     # Bersihkan file lama (maksimal sekali per menit)
     @app.before_request

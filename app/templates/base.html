@@ -59,7 +59,10 @@
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.merge_page' }}" href="{{ url_for('pdf.merge_page') }}"><i class="bi bi-files me-2"></i>Gabung PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.word_to_pdf_page' }}" href="{{ url_for('pdf.word_to_pdf_page') }}"><i class="bi bi-file-earmark-word me-2"></i>Word ke PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.pdf_to_word_page' }}" href="{{ url_for('pdf.pdf_to_word_page') }}"><i class="bi bi-file-earmark-text me-2"></i>PDF ke Word</a></li>
-            </ul>
+              <li><a class="dropdown-item {{ 'active' if ep == 'office.excel_page' }}" href="{{ url_for('office.excel_page') }}"><i class="bi bi-file-earmark-excel me-2"></i>Excel ke PDF</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'office.ppt_page' }}" href="{{ url_for('office.ppt_page') }}"><i class="bi bi-file-earmark-slides me-2"></i>PowerPoint ke PDF</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'office.pdf_to_ppt_page' }}" href="{{ url_for('office.pdf_to_ppt_page') }}"><i class="bi bi-file-earmark-slides me-2"></i>PDF ke PowerPoint</a></li>
+              </ul>
           </li>
           <li class="nav-item dropdown">
             <a class="nav-link {{ 'active' if ep == 'zip.folder_page' }}" href="{{ url_for('zip.folder_page') }}">
