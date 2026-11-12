@@ -243,7 +243,7 @@ docker run -p 8000:8000 --env-file .env omni-toolbox
 - [x] Compress PDF
 - [x] Text / watermark remover
 - [x] Zip folder
-- [ ] MOV → MP4 & MP3 extractor
+- [x] MOV → MP4 & MP3 extractor
 - [x] Word ↔ PDF, PDF ↔ Word
 - [x] Image upscaler (Real-ESRGAN, background queue with live progress)
 - [ ] Background job queue shared across workers (Celery + Redis)
