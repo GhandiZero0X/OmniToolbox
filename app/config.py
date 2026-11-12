@@ -72,3 +72,9 @@ class Config:
     WORD_TIMEOUT_SECONDS = _env_int("WORD_TIMEOUT_SECONDS", 120)
     # Batas halaman PDF -> Word (pdf2docx sangat lambat untuk PDF besar)
     PDF_TO_WORD_MAX_PAGES = _env_int("PDF_TO_WORD_MAX_PAGES", 50)
+
+    # ----- Konversi Video/Audio (FFmpeg) -----
+    # Kosongkan agar dicari otomatis di PATH
+    FFMPEG_PATH = os.getenv("FFMPEG_PATH", "")
+    VIDEO_TIMEOUT_SECONDS = _env_int("VIDEO_TIMEOUT_SECONDS", 600)
+    VIDEO_WORKERS = _env_int("VIDEO_WORKERS", 2)

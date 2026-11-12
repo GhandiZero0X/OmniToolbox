@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Konversi Video / Audio{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-camera-video text-danger me-2"></i>Konversi Video / Audio</h1>
+    <p class="text-body-secondary mb-0">
+      Ubah video ke MP4 (paling kompatibel), ekstrak ke MP3, atau konversi ke MOV.
+      Mendukung MOV, MP4, AVI, MKV, WebM, dan 3GP.
+    </p>
+  </div>
+
+  {% if not ffmpeg_ready %}
+  <div class="alert alert-warning d-flex gap-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+      <strong>FFmpeg belum terpasang.</strong> {{ setup_hint }}
+    </div>
+  </div>
+  {% endif %}
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('media.convert_process') }}" method="post" enctype="multipart/form-data"
+        data-accept="{{ accept }}" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret file video ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas file video di sini</p>
+        <p class="text-body-secondary small mb-0">
+          MOV, MP4, M4V, AVI, MKV, WebM, 3GP &middot; maksimal {{ max_files }} file &middot; total {{ max_mb }} MB
+        </p>
+        <input type="file" id="file-input" class="d-none" multiple accept="{{ accept }}">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-6">
+          <label for="target" class="form-label fw-semibold">Format tujuan</label>
+          <select class="form-select" id="target" name="target">
+            <option value="mp4" selected>MP4 (video + audio, paling kompatibel)</option>
+            <option value="mp3">MP3 (ekstrak audio saja)</option>
+            <option value="mov">MOV (video + audio, untuk Apple)</option>
+          </select>
+          <div class="form-text">MP4 cocok untuk WhatsApp/YouTube/media sosial. MOV untuk Final Cut/iMovie.</div>
+        </div>
+
+        <div class="col-md-6" id="preset-group">
+          <label for="preset" class="form-label fw-semibold">Kualitas video</label>
+          <select class="form-select" id="preset" name="preset">
+            {% for key, pair in video_presets.items() %}
+            <option value="{{ key }}" {{ 'selected' if key == default_preset }}>{{ pair[0] }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Preset "Cepat" 2-3× lebih cepat tapi file lebih besar. "Terbaik" untuk arsip.</div>
+        </div>
+
+        <div class="col-md-6 d-none" id="bitrate-group">
+          <label for="bitrate" class="form-label fw-semibold">Kualitas audio MP3</label>
+          <select class="form-select" id="bitrate" name="bitrate">
+            {% for br in audio_bitrates %}
+            <option value="{{ br }}" {{ 'selected' if br == default_bitrate }}>
+              {{ br[:-1] }} kbps{{ ' (disarankan)' if br == default_bitrate }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">128 kbps cukup untuk podcast. 320 kbps untuk musik.</div>
+        </div>
+      </div>
+
+      <div class="alert alert-secondary small mt-4 mb-0">
+        <i class="bi bi-hourglass-split me-1"></i>
+        Video besar bisa butuh 1-3 menit per file. Proses berjalan paralel maksimal
+        {{ video_workers }} file sekaligus.
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Progres upload">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-camera-video-fill me-1"></i>Konversi Sekarang
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil konversi</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Format</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Toggle antara preset (video) dan bitrate (MP3) berdasarkan format tujuan
+  (function () {
+    var target = document.getElementById("target");
+    var presetGroup = document.getElementById("preset-group");
+    var bitrateGroup = document.getElementById("bitrate-group");
+
+    function sync() {
+      var isAudio = target.value === "mp3";
+      presetGroup.classList.toggle("d-none", isAudio);
+      bitrateGroup.classList.toggle("d-none", !isAudio);
+    }
+    target.addEventListener("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

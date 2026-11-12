@@ -61,9 +61,14 @@
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.pdf_to_word_page' }}" href="{{ url_for('pdf.pdf_to_word_page') }}"><i class="bi bi-file-earmark-text me-2"></i>PDF ke Word</a></li>
             </ul>
           </li>
-            <li class="nav-item">
+          <li class="nav-item dropdown">
             <a class="nav-link {{ 'active' if ep == 'zip.folder_page' }}" href="{{ url_for('zip.folder_page') }}">
               <i class="bi bi-file-earmark-zip me-1"></i>Zip Folder
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {{ 'active' if ep == 'media.convert_page' }}" href="{{ url_for('media.convert_page') }}">
+              <i class="bi bi-camera-video me-1"></i>Video
             </a>
           </li>
         </ul>
