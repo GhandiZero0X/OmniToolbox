@@ -57,6 +57,11 @@
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.compress_page' }}" href="{{ url_for('pdf.compress_page') }}"><i class="bi bi-file-earmark-pdf me-2"></i>Kompres PDF</a></li>
             </ul>
           </li>
+            <li class="nav-item">
+            <a class="nav-link {{ 'active' if ep == 'zip.folder_page' }}" href="{{ url_for('zip.folder_page') }}">
+              <i class="bi bi-file-earmark-zip me-1"></i>Zip Folder
+            </a>
+          </li>
         </ul>
         <button id="theme-toggle" class="btn btn-outline-secondary btn-sm" type="button" aria-label="Ganti tema">
           <i class="bi bi-moon-stars"></i>

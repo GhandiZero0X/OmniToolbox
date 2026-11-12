@@ -30,10 +30,12 @@ def create_app(config_class=Config) -> Flask:
     from .controllers.image_controller import bp as image_bp
     from .controllers.main_controller import bp as main_bp
     from .controllers.pdf_controller import bp as pdf_bp
+    from .controllers.zip_controller import bp as zip_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(image_bp)
     app.register_blueprint(pdf_bp)
+    app.register_blueprint(zip_bp)
 
     # Bersihkan file lama (maksimal sekali per menit)
     @app.before_request

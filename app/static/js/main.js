@@ -88,9 +88,21 @@
   const resultsBody = document.getElementById("results-body");
   const resultsSummary = document.getElementById("results-summary");
   const zipBtn = document.getElementById("zip-btn");
+  const folderBtn = document.getElementById("folder-btn");     /* ← BARU */
+  const folderInput = document.getElementById("folder-input"); /* ← BARU */
 
-  const allowedExt = (form.dataset.accept || "")
-    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  /* ------- 7a. Deteksi "accept all" + helper path ------- */
+  const acceptRaw = (form.dataset.accept || "").trim();              /* ← BARU */
+  const allowedExt = acceptRaw === "*"                                /* ← BARU */
+    ? []
+    : acceptRaw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const acceptAll = acceptRaw === "*" || allowedExt.length === 0;    /* ← BARU */
+
+  // Path relatif untuk upload folder (webkitdirectory); fallback ke nama
+  function filePath(file) {                                          /* ← BARU */
+    return file.webkitRelativePath || file.name;
+  }
+
   const maxFiles = parseInt(form.dataset.maxFiles, 10) || 20;
   const maxBytes = (parseInt(form.dataset.maxMb, 10) || 200) * 1024 * 1024;
   const reorderEnabled = form.dataset.reorder === "true"; // urutan file = urutan halaman
@@ -126,27 +138,28 @@
 
     files.forEach((file, index) => {
       const li = el("li", "list-group-item");
+      const path = filePath(file);                          /* ← BARU */
 
       if (reorderEnabled) {
         li.append(el("span", "badge text-bg-primary page-number", String(index + 1)));
       }
       li.append(
         el("i", "bi bi-file-earmark text-body-secondary"),
-        el("span", "file-name", file.name),
+        el("span", "file-name", path),                       // ← ganti file.name -> path
         el("span", "badge text-bg-secondary", formatSize(file.size))
       );
 
       if (reorderEnabled) {
         const upBtn = el("button", "btn btn-sm btn-outline-secondary");
         upBtn.type = "button";
-        upBtn.setAttribute("aria-label", "Naikkan " + file.name);
+        upBtn.setAttribute("aria-label", "Naikkan " + path);   // ← ganti
         upBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
         upBtn.disabled = index === 0;
         upBtn.addEventListener("click", () => moveFile(index, -1));
 
         const downBtn = el("button", "btn btn-sm btn-outline-secondary");
         downBtn.type = "button";
-        downBtn.setAttribute("aria-label", "Turunkan " + file.name);
+        downBtn.setAttribute("aria-label", "Turunkan " + path); // ← ganti
         downBtn.innerHTML = '<i class="bi bi-arrow-down"></i>';
         downBtn.disabled = index === files.length - 1;
         downBtn.addEventListener("click", () => moveFile(index, 1));
@@ -156,7 +169,7 @@
 
       const removeBtn = el("button", "btn btn-sm btn-outline-danger");
       removeBtn.type = "button";
-      removeBtn.setAttribute("aria-label", "Hapus " + file.name);
+      removeBtn.setAttribute("aria-label", "Hapus " + path);   // ← ganti
       removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
       removeBtn.addEventListener("click", () => {
         if (busy) return;
@@ -180,12 +193,13 @@
     const accepted = [];
 
     Array.from(newFiles).forEach((file) => {
-      if (!allowedExt.includes(extOf(file.name))) {
-        problems.push(file.name + ": format tidak didukung");
+      const path = filePath(file);                              // ← BARU
+      if (!acceptAll && !allowedExt.includes(extOf(path))) {    // ← BARU (pakai acceptAll)
+        problems.push(path + ": format tidak didukung");
         return;
       }
       const duplicate = files.some(
-        (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
+        (f) => filePath(f) === path && f.size === file.size && f.lastModified === file.lastModified // ← BARU
       );
       if (!duplicate) accepted.push(file);
     });
@@ -238,6 +252,15 @@
     if (!busy) addFiles(event.dataTransfer.files);
   });
 
+  /* ---------- 7c. Upload folder (webkitdirectory) ---------- */
+  if (folderBtn && folderInput) {                                    /* ← BARU */
+    folderBtn.addEventListener("click", () => { if (!busy) folderInput.click(); });
+    folderInput.addEventListener("change", () => {
+      if (folderInput.files.length) addFiles(folderInput.files);
+      folderInput.value = ""; // supaya folder yang sama bisa dipilih ulang
+    });
+  }
+
   /* ---------- Urutkan berdasarkan nama ---------- */
   if (sortBtn) {
     sortBtn.addEventListener("click", () => {
@@ -264,6 +287,7 @@
     busy = state;
     submitBtn.disabled = state || files.length === 0;
     resetBtn.disabled = state;
+    if (folderBtn) folderBtn.disabled = state;      // ← TAMBAH
     submitBtn.innerHTML = state
       ? '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Memproses...'
       : submitHtml;
@@ -439,7 +463,7 @@
     // FormData dari form (opsi), lalu file sesuai urutan di daftar
     const formData = new FormData(form);
     formData.delete("files");
-    files.forEach((file) => formData.append("files", file, file.name));
+    files.forEach((file) => formData.append("files", file, filePath(file))); // ← ganti file.name -> filePath(file)
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", form.action);
