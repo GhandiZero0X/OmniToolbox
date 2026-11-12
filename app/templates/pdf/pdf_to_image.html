@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}PDF ke Gambar{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-file-earmark-image text-info me-2"></i>PDF ke Gambar</h1>
+    <p class="text-body-secondary mb-0">
+      Ekspor setiap halaman PDF menjadi gambar JPG atau PNG. Cocok untuk membuat pratinjau atau mengedit halaman.
+    </p>
+  </div>
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('pdf.pdf_to_image_process') }}" method="post" enctype="multipart/form-data"
+        data-accept=".pdf" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret PDF ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas file PDF di sini</p>
+        <p class="text-body-secondary small mb-0">
+          Maksimal {{ max_files }} file &middot; total {{ max_mb }} MB &middot; maksimal {{ max_pages }} halaman per PDF
+        </p>
+        <input type="file" id="file-input" class="d-none" multiple accept=".pdf,application/pdf">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-4">
+          <label for="dpi" class="form-label fw-semibold">Resolusi</label>
+          <select class="form-select" id="dpi" name="dpi">
+            {% for key in dpi_choices %}
+            <option value="{{ key }}" {{ 'selected' if key == default_dpi }}>
+              {{ key }} DPI{{ ' (disarankan)' if key == '150' }}{{ ' (cetak)' if key == '300' }}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">150 DPI cukup untuk layar. 300 DPI untuk cetak (file lebih besar).</div>
+        </div>
+        <div class="col-md-4">
+          <label for="format" class="form-label fw-semibold">Format gambar</label>
+          <select class="form-select" id="format" name="format">
+            <option value="jpg" selected>JPG (kecil)</option>
+            <option value="png">PNG (lossless)</option>
+          </select>
+        </div>
+        <div class="col-md-4" id="quality-group">
+          <label for="quality" class="form-label fw-semibold">
+            Kualitas JPG: <output id="quality-value" for="quality">90</output>%
+          </label>
+          <input type="range" class="form-range" id="quality" name="quality"
+                 min="50" max="100" step="5" value="90" data-output="quality-value">
+        </div>
+      </div>
+
+      <div class="alert alert-secondary small mt-4 mb-0">
+        <i class="bi bi-info-circle me-1"></i>
+        Setiap halaman menjadi satu file gambar. Jika hasilnya banyak, gunakan tombol "Unduh semua (ZIP)".
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-images me-1"></i>Ekstrak Gambar
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <p class="small text-body-secondary">Klik gambar mini untuk melihat hasil dalam ukuran penuh.</p>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Format</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Slider kualitas hanya berlaku untuk JPG
+  (function () {
+    var select = document.getElementById("format");
+    var group = document.getElementById("quality-group");
+    function sync() { group.classList.toggle("d-none", select.value === "png"); }
+    select.addEventListener("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

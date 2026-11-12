@@ -62,3 +62,6 @@ class Config:
     # Jumlah gambar maksimal yang boleh menunggu di antrean (semua pengguna)
     UPSCALE_MAX_QUEUE = _env_int("UPSCALE_MAX_QUEUE", 30)
     UPSCALE_TIMEOUT_SECONDS = _env_int("UPSCALE_TIMEOUT_SECONDS", 900)
+
+    # PDF -> Gambar: batas jumlah halaman per PDF (mencegah abuse & memory blow-up)
+    PDF_RENDER_MAX_PAGES = _env_int("PDF_RENDER_MAX_PAGES", 100)

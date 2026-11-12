@@ -140,3 +140,128 @@ def images_to_pdf_process():
         results.append({"name": failure["name"], "status": "failed", "error": failure["error"]})
 
     return build_job_response(job_id, results, output_dir, show_savings=False)
+
+# =========================================================
+# MERGE PDF
+# =========================================================
+
+@bp.get("/merge")
+def merge_page():
+    return render_template(
+        "pdf/merge.html",
+        max_files=current_app.config["MAX_FILES_MERGE"],
+        max_mb=current_app.config["MAX_UPLOAD_MB"],
+    )
+
+
+@bp.post("/merge/process")
+@limiter.limit("10 per minute")
+def merge_process():
+    cfg = current_app.config
+
+    files, error = get_upload_files(cfg["MAX_FILES_MERGE"])
+    if error:
+        return jsonify(error=error), 400
+    if len(files) < 2:
+        return jsonify(error="Butuh minimal 2 file PDF untuk digabung."), 400
+
+    pdf_name = _clean_pdf_name(request.form.get("pdf_name"))
+    job_id, upload_dir, output_dir = new_job_dirs()
+    output_path = output_dir / f"{pdf_name}.pdf"
+
+    total_in = 0
+    try:
+        entries = save_uploaded_files(
+            files, upload_dir, {".pdf"}, validator=pdf_service.is_pdf_file
+        )
+        valid_entries = [e for e in entries if e["path"] is not None]
+        outcome = pdf_service.merge_pdfs(valid_entries, output_path)
+        total_in = sum(e["path"].stat().st_size for e in outcome["used"])
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    if outcome["error"]:
+        return jsonify(error=outcome["error"]), 500
+
+    results = []
+    if outcome["used"]:
+        results.append({
+            "name": output_path.name,
+            "status": "success",
+            "output": output_path.name,
+            "original_size": total_in,
+            "new_size": output_path.stat().st_size,
+            "saved_percent": 0,
+            "kept_original": False,
+            "badge": f"{outcome['pages']} hal.",
+        })
+    for entry in entries:
+        if entry["path"] is None:
+            results.append({"name": entry["original_name"], "status": "failed",
+                            "error": entry["error"]})
+    for failure in outcome["failed"]:
+        results.append({"name": failure["name"], "status": "failed",
+                        "error": failure["error"]})
+
+    return build_job_response(job_id, results, output_dir, show_savings=False)
+
+
+# =========================================================
+# PDF -> GAMBAR
+# =========================================================
+
+@bp.get("/pdf-to-image")
+def pdf_to_image_page():
+    cfg = current_app.config
+    return render_template(
+        "pdf/pdf_to_image.html",
+        max_files=cfg["MAX_FILES_PER_REQUEST"],
+        max_mb=cfg["MAX_UPLOAD_MB"],
+        max_pages=cfg["PDF_RENDER_MAX_PAGES"],
+        dpi_choices=pdf_service.PDF_RENDER_DPI,
+        default_dpi=pdf_service.DEFAULT_RENDER_DPI,
+    )
+
+
+@bp.post("/pdf-to-image/process")
+@limiter.limit("10 per minute")
+def pdf_to_image_process():
+    cfg = current_app.config
+
+    files, error = get_upload_files()
+    if error:
+        return jsonify(error=error), 400
+
+    dpi_choice = request.form.get("dpi", pdf_service.DEFAULT_RENDER_DPI)
+    if dpi_choice not in pdf_service.PDF_RENDER_DPI:
+        dpi_choice = pdf_service.DEFAULT_RENDER_DPI
+    dpi = pdf_service.PDF_RENDER_DPI[dpi_choice]
+
+    fmt = request.form.get("format", pdf_service.DEFAULT_RENDER_FORMAT)
+    if fmt not in pdf_service.RENDER_FORMATS:
+        fmt = pdf_service.DEFAULT_RENDER_FORMAT
+
+    quality = image_service.clamp_quality(request.form.get("quality"), default=90)
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+
+    try:
+        entries = save_uploaded_files(
+            files, upload_dir, {".pdf"}, validator=pdf_service.is_pdf_file
+        )
+        valid_entries = [e for e in entries if e["path"] is not None]
+        processed = pdf_service.render_pdfs(
+            valid_entries, output_dir, dpi, fmt, quality,
+            cfg["PDF_RENDER_MAX_PAGES"], cfg["PDF_WORKERS"],
+        )
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    rejected = [
+        {"name": e["original_name"], "status": "failed", "error": e["error"]}
+        for e in entries if e["path"] is None
+    ]
+    results = processed + rejected
+
+    return build_job_response(job_id, results, output_dir,
+                              show_savings=False, previews=True)

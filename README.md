@@ -243,12 +243,12 @@ docker run -p 8000:8000 --env-file .env omni-toolbox
 
 - [x] Image converter & compressor
 - [x] Image → PDF
-- [ ] Merge PDF, PDF → Image
+- [x] Merge PDF, PDF → Image
 - [x] Compress PDF
 - [x] Text / watermark remover
 - [x] Zip folder
 - [ ] MOV → MP4 & MP3 extractor
-- [ ] Word ↔ PDF
+- [ ] Word ↔ PDF, PDF ↔ Word
 - [x] Image upscaler (Real-ESRGAN, background queue with live progress)
 - [ ] Background job queue shared across workers (Celery + Redis)
 - [x] Batch processing & drag-and-drop upload

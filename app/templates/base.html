@@ -50,11 +50,13 @@
             </ul>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('pdf.compress_page', 'pdf.images_to_pdf_page') }}"
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('pdf.compress_page', 'pdf.images_to_pdf_page', 'pdf.pdf_to_image_page', 'pdf.merge_page') }}"
                href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">PDF</a>
             <ul class="dropdown-menu">
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.images_to_pdf_page' }}" href="{{ url_for('pdf.images_to_pdf_page') }}"><i class="bi bi-file-earmark-image me-2"></i>Gambar ke PDF</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'pdf.pdf_to_image_page' }}" href="{{ url_for('pdf.pdf_to_image_page') }}"><i class="bi bi-file-earmark-break me-2"></i>PDF ke Gambar</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.compress_page' }}" href="{{ url_for('pdf.compress_page') }}"><i class="bi bi-file-earmark-pdf me-2"></i>Kompres PDF</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'pdf.merge_page' }}" href="{{ url_for('pdf.merge_page') }}"><i class="bi bi-files me-2"></i>Gabung PDF</a></li>
             </ul>
           </li>
             <li class="nav-item">

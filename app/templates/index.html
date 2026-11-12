@@ -77,6 +77,24 @@
         </div>
       </a>
     </div>
+    <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('pdf.merge_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-primary-subtle text-primary"><i class="bi bi-files"></i></div>
+          <h3 class="h5 mt-3">Gabung PDF</h3>
+          <p class="text-body-secondary mb-0">Gabungkan banyak PDF jadi satu dokumen. Urutan halaman bisa diatur sebelum digabung.</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('pdf.pdf_to_image_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-file-earmark-break"></i></div>
+          <h3 class="h5 mt-3">PDF ke Gambar</h3>
+          <p class="text-body-secondary mb-0">Ekspor setiap halaman PDF menjadi gambar JPG atau PNG dengan pilihan resolusi.</p>
+        </div>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -85,8 +103,7 @@
   <div class="row g-3">
     {% for icon, title in [
       ('bi-camera-video', 'MOV ke MP4 / MP3'),
-      ('bi-file-earmark-word', 'Word ke PDF'),
-      ('bi-files', 'Gabung PDF'),
+      ('bi-file-earmark-word', 'Word ke PDF , PDF ke Word'),
     ] %}
     <div class="col-6 col-md-4 col-lg-2">
       <div class="card h-100 coming-soon text-center">

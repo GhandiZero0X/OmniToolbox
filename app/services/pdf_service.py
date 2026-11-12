@@ -225,3 +225,177 @@ def images_to_pdf(entries, output_path, work_dir, page_size: str = "image",
         outcome["used"] = []
 
     return outcome
+
+# =========================================================
+# MERGE PDF
+# =========================================================
+
+def merge_pdfs(entries, output_path) -> dict:
+    """
+    Gabungkan banyak PDF menjadi satu. Urutan = urutan entries.
+    Mengembalikan:
+      {"pages": jumlah halaman,
+       "used": [entry yang berhasil],
+       "failed": [{"name":..., "error":...}],
+       "error": pesan fatal atau None}
+    """
+    from pypdf import PdfReader, PdfWriter
+
+    output_path = Path(output_path)
+    outcome = {"pages": 0, "used": [], "failed": [], "error": None}
+
+    writer = PdfWriter()
+    for entry in entries:
+        try:
+            reader = PdfReader(str(entry["path"]))
+            if reader.is_encrypted:
+                try:
+                    reader.decrypt("")  # coba password kosong
+                except Exception:
+                    raise ValueError("PDF terenkripsi, tidak bisa digabung.")
+            for page in reader.pages:
+                writer.add_page(page)
+            outcome["used"].append(entry)
+        except Exception as exc:  # noqa: BLE001
+            outcome["failed"].append({
+                "name": entry["original_name"],
+                "error": f"Gagal membaca PDF: {exc}",
+            })
+
+    if not outcome["used"]:
+        outcome["error"] = "Tidak ada PDF valid yang bisa digabung."
+        return outcome
+
+    try:
+        with open(output_path, "wb") as fh:
+            writer.write(fh)
+        outcome["pages"] = len(writer.pages)
+    except Exception as exc:  # noqa: BLE001
+        output_path.unlink(missing_ok=True)
+        outcome["error"] = f"Gagal menulis PDF: {exc}"
+        outcome["used"] = []
+
+    return outcome
+
+
+# =========================================================
+# PDF -> GAMBAR
+# =========================================================
+
+PDF_RENDER_DPI = {
+    "72": 72,     # cepat, untuk pratinjau
+    "100": 100,
+    "150": 150,   # seimbang, disarankan
+    "200": 200,
+    "300": 300,   # cetak
+}
+DEFAULT_RENDER_DPI = "150"
+RENDER_FORMATS = {"jpg", "png"}
+DEFAULT_RENDER_FORMAT = "jpg"
+
+_RENDER_FORMAT_BY_CHOICE = {"jpg": "JPEG", "png": "PNG"}
+_RENDER_EXT_BY_CHOICE = {"jpg": ".jpg", "png": ".png"}
+
+
+def render_pdf(path, output_dir, original_name: str, dpi: int, fmt: str,
+               quality: int, max_pages: int) -> list:
+    """
+    Render setiap halaman PDF menjadi gambar.
+    Mengembalikan list dict (satu per halaman), plus baris error jika ada.
+    """
+    import fitz  # PyMuPDF
+
+    path, output_dir = Path(path), Path(output_dir)
+    results = []
+
+    try:
+        doc = fitz.open(str(path))
+    except Exception as exc:  # noqa: BLE001
+        return [{"name": original_name, "status": "failed",
+                 "error": f"Gagal membuka PDF: {exc}"}]
+
+    try:
+        total_pages = len(doc)
+        if total_pages == 0:
+            return [{"name": original_name, "status": "failed",
+                     "error": "PDF tidak memiliki halaman."}]
+        if total_pages > max_pages:
+            return [{"name": original_name, "status": "failed",
+                     "error": f"PDF memiliki {total_pages} halaman, melebihi batas {max_pages}."}]
+
+        target_format = _RENDER_FORMAT_BY_CHOICE[fmt]
+        extension = _RENDER_EXT_BY_CHOICE[fmt]
+        zoom = dpi / 72.0
+        matrix = fitz.Matrix(zoom, zoom)
+
+        original_size = path.stat().st_size
+        # perkiraan porsi ukuran input per halaman (untuk laporan summary)
+        per_page_input = original_size // max(total_pages, 1)
+        stem = path.stem
+
+        for i in range(total_pages):
+            try:
+                page = doc.load_page(i)
+                pix = page.get_pixmap(matrix=matrix, alpha=False)
+                img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+                del pix
+
+                out_name = f"{stem}_p{i+1:03d}{extension}"
+                out_path = output_dir / out_name
+
+                # PNG selalu lossless; kualitas hanya berlaku untuk JPG
+                effective_quality = 100 if target_format == "PNG" else quality
+                image_service.save_image(img, out_path, target_format, effective_quality)
+
+                thumb = image_service.save_thumbnail(
+                    img, output_dir, f"{stem}_p{i+1:03d}"
+                )
+                del img
+
+                results.append({
+                    "name": f"{original_name} - hal. {i+1}",
+                    "status": "success",
+                    "output": out_name,
+                    "original_size": per_page_input,
+                    "new_size": out_path.stat().st_size,
+                    "saved_percent": 0,
+                    "kept_original": False,
+                    "badge": extension.lstrip(".").upper(),
+                    "thumb": thumb,
+                })
+            except Exception as exc:  # noqa: BLE001
+                results.append({
+                    "name": f"{original_name} - hal. {i+1}",
+                    "status": "failed",
+                    "error": f"Gagal render halaman: {exc}",
+                })
+    finally:
+        doc.close()
+
+    return results
+
+
+def render_pdfs(entries, output_dir, dpi: int, fmt: str, quality: int,
+                max_pages: int, max_workers: int = 2) -> list:
+    """
+    Render banyak PDF secara paralel. Urutan hasil = urutan input (flat list).
+    """
+    if not entries:
+        return []
+
+    batches = [None] * len(entries)
+    with ThreadPoolExecutor(max_workers=max(1, max_workers)) as executor:
+        future_to_index = {
+            executor.submit(
+                render_pdf, e["path"], output_dir, e["original_name"],
+                dpi, fmt, quality, max_pages,
+            ): i
+            for i, e in enumerate(entries)
+        }
+        for future in as_completed(future_to_index):
+            batches[future_to_index[future]] = future.result()
+
+    flat = []
+    for batch in batches:
+        flat.extend(batch)
+    return flat
