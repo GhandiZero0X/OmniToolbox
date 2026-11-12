@@ -63,12 +63,15 @@
               <li><a class="dropdown-item {{ 'active' if ep == 'office.excel_page' }}" href="{{ url_for('office.excel_page') }}"><i class="bi bi-file-earmark-excel me-2"></i>Excel ke PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'office.ppt_page' }}" href="{{ url_for('office.ppt_page') }}"><i class="bi bi-file-earmark-slides me-2"></i>PowerPoint ke PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'office.pdf_to_ppt_page' }}" href="{{ url_for('office.pdf_to_ppt_page') }}"><i class="bi bi-file-earmark-slides me-2"></i>PDF ke PowerPoint</a></li>
-              </ul>
+            </ul>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link {{ 'active' if ep == 'zip.folder_page' }}" href="{{ url_for('zip.folder_page') }}">
-              <i class="bi bi-file-earmark-zip me-1"></i>Zip Folder
-            </a>
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('zip.folder_page', 'zip.extract_page') }}"
+               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Arsip</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item {{ 'active' if ep == 'zip.folder_page' }}" href="{{ url_for('zip.folder_page') }}"><i class="bi bi-file-earmark-zip me-2"></i>Buat Arsip</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'zip.extract_page' }}" href="{{ url_for('zip.extract_page') }}"><i class="bi bi-box-arrow-up me-2"></i>Ekstrak Arsip</a></li>
+            </ul>
           </li>
           <li class="nav-item">
             <a class="nav-link {{ 'active' if ep == 'media.convert_page' }}" href="{{ url_for('media.convert_page') }}">

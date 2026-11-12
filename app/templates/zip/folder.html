@@ -36,21 +36,17 @@
       <ul id="file-list" class="list-group mt-3"></ul>
 
       <div class="row g-4 mt-1">
-        <div class="col-md-4">
-          <label for="zip_name" class="form-label fw-semibold">Nama file ZIP</label>
+        <div class="col-md-6">
+          <label for="zip_name" class="form-label fw-semibold">Nama file Arsip</label>
           <input type="text" class="form-control" id="zip_name" name="zip_name" value="arsip" maxlength="80">
-          <div class="form-text">Tanpa ekstensi <code>.zip</code></div>
         </div>
-        <div class="col-md-8">
-          <label for="compression" class="form-label fw-semibold">Mode kompresi</label>
-          <select class="form-select" id="compression" name="compression">
-            {% for key, pair in compression_levels.items() %}
-            <option value="{{ key }}" {{ 'selected' if key == default_compression }}>{{ pair[0] }}</option>
-            {% endfor %}
+        <div class="col-md-6">
+          <label for="format" class="form-label fw-semibold">Format Arsip</label>
+          <select class="form-select" id="format" name="format">
+            <option value="zip" selected>ZIP (Paling Kompatibel)</option>
+            <option value="7z">7Z (Kompresi Terbaik)</option>
+            <option value="rar" {{ 'disabled' if not winrar_ready }}>RAR {{ '(WinRAR tidak terdeteksi)' if not winrar_ready }}</option>
           </select>
-          <div class="form-text">
-            Foto/video/PDF biasanya sudah terkompresi. Mode "Cepat" menghasilkan ZIP dengan ukuran mirip, tapi jauh lebih cepat.
-          </div>
         </div>
       </div>
 

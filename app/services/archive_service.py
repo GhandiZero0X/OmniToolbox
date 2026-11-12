@@ -1,6 +1,10 @@
+from asyncio import subprocess
+import os
 import re
 import shutil
 import zipfile
+import py7zr
+import rarfile
 from pathlib import Path, PurePosixPath
 
 
@@ -119,3 +123,148 @@ def zip_files(files, output_path, work_dir, compression: str = DEFAULT_COMPRESSI
         shutil.rmtree(work_dir, ignore_errors=True)
 
     return outcome
+
+# =========================================================
+# DETEKSI WINRAR (Untuk buat file RAR)
+# =========================================================
+def find_winrar() -> "str | None":
+    """Cari file rar.exe dari WinRAR."""
+    if os.name != "nt":
+        return shutil.which("rar")
+    
+    candidates = [
+        r"C:\Program Files\WinRAR\rar.exe",
+        r"C:\Program Files (x86)\WinRAR\rar.exe",
+    ]
+    for c in candidates:
+        if Path(c).is_file():
+            return c
+    return shutil.which("rar")
+
+# =========================================================
+# EKSTRAK ARSIP (Zip, RAR, 7z)
+# =========================================================
+def extract_archive(archive_path, extract_dir):
+    """Ekstrak ZIP, RAR, atau 7z ke dalam folder tujuan."""
+    archive_path = Path(archive_path)
+    extract_dir = Path(extract_dir)
+    extract_dir.mkdir(parents=True, exist_ok=True)
+    
+    ext = archive_path.suffix.lower()
+    
+    try:
+        if ext == ".zip":
+            with zipfile.ZipFile(archive_path, "r") as zf:
+                zf.extractall(extract_dir)
+        elif ext == ".7z":
+            with py7zr.SevenZipFile(archive_path, mode="r") as zf:
+                zf.extractall(extract_dir)
+        elif ext == ".rar":
+            with rarfile.RarFile(archive_path) as rf:
+                rf.extractall(extract_dir)
+        else:
+            raise ValueError("Format arsip tidak didukung.")
+    except Exception as exc:
+        # Tangkap error jika password (misal encrypted file) atau file korup
+        raise ValueError(f"Gagal mengekstrak: {exc}")
+
+def extract_archives_to_zip(entries, output_dir, work_dir) -> dict:
+    """
+    Ekstrak arsip yang di-upload, lalu bungkus kembali isinya menjadi 1 file ZIP baru.
+    """
+    outcome = {"count": 0, "original_size": 0, "failed": [], "error": None}
+    work_dir.mkdir(parents=True, exist_ok=True)
+    
+    for entry in entries:
+        try:
+            # Ekstrak ke folder sementara
+            temp_extract = work_dir / f"ext_{entry['path'].stem}"
+            extract_archive(entry["path"], temp_extract)
+            
+            # Bungkus kembali ke ZIP
+            zip_name = f"{entry['path'].stem}_extracted.zip"
+            output_zip = output_dir / zip_name
+            
+            with zipfile.ZipFile(output_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                for root, _, files in os.walk(temp_extract):
+                    for file in files:
+                        file_path = Path(root) / file
+                        arcname = file_path.relative_to(temp_extract)
+                        zf.write(file_path, arcname=arcname)
+                        
+            outcome["count"] += 1
+            outcome["original_size"] += entry["path"].stat().st_size
+            
+            # Bersihkan folder sementara setelah satu arsip selesai
+            shutil.rmtree(temp_extract, ignore_errors=True)
+        except Exception as exc:
+            outcome["failed"].append({"name": entry["original_name"], "error": str(exc)})
+            
+    if outcome["count"] == 0:
+        outcome["error"] = "Tidak ada arsip yang berhasil diekstrak."
+    
+    return outcome
+
+# =========================================================
+# KOMPRESI KE 7Z / RAR
+# =========================================================
+def compress_to_7z(files, output_path, work_dir) -> dict:
+    """Bungkus kumpulan file menjadi .7z (mempertahankan struktur folder)."""
+    output_path = Path(output_path)
+    work_dir = Path(work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Simpan semua file di folder sementara (mirip dengan zip_files)
+    used_names = set()
+    for index, storage in enumerate(files):
+        original = storage.filename or f"file_{index}"
+        arcname = _safe_arcname(original)
+        if not arcname: continue
+        
+        # pastikan unik
+        base_arc = arcname
+        counter = 1
+        while str(arcname).lower() in used_names:
+            arcname = base_arc.with_name(f"{base_arc.stem}_{counter}{base_arc.suffix}")
+            counter += 1
+        used_names.add(str(arcname).lower())
+        
+        tmp = work_dir / str(arcname)
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        storage.save(tmp)
+        
+    with py7zr.SevenZipFile(output_path, 'w') as archive:
+        archive.writeall(work_dir, arcname='')
+        
+    shutil.rmtree(work_dir, ignore_errors=True)
+    return {"status": "success", "output": output_path.name}
+
+def compress_to_rar(files, output_path, work_dir, rar_exe) -> dict:
+    """Bungkus file jadi .rar menggunakan WinRAR."""
+    output_path = Path(output_path)
+    work_dir = Path(work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+    
+    used_names = set()
+    for index, storage in enumerate(files):
+        original = storage.filename or f"file_{index}"
+        arcname = _safe_arcname(original)
+        if not arcname: continue
+        
+        base_arc = arcname
+        counter = 1
+        while str(arcname).lower() in used_names:
+            arcname = base_arc.with_name(f"{base_arc.stem}_{counter}{base_arc.suffix}")
+            counter += 1
+        used_names.add(str(arcname).lower())
+        
+        tmp = work_dir / str(arcname)
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        storage.save(tmp)
+        
+    # Panggil rar.exe secara silent
+    cmd = [rar_exe, "a", "-r", "-idq", str(output_path.resolve()), "."]
+    subprocess.run(cmd, cwd=str(work_dir.resolve()), check=True, capture_output=True)
+    
+    shutil.rmtree(work_dir, ignore_errors=True)
+    return {"status": "success", "output": output_path.name}

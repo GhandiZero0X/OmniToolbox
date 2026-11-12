@@ -81,8 +81,17 @@
       <a href="{{ url_for('zip.folder_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-earmark-zip"></i></div>
-          <h3 class="h5 mt-3">Zip Folder</h3>
-          <p class="text-body-secondary mb-0">Bungkus banyak file atau seluruh folder menjadi satu arsip ZIP, struktur tetap rapi.</p>
+          <h3 class="h5 mt-3">Buat Arsip</h3>
+          <p class="text-body-secondary mb-0">Bungkus banyak file atau folder menjadi ZIP, 7Z, atau RAR dengan struktur tetap rapi.</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('zip.extract_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-secondary-subtle text-secondary-emphasis"><i class="bi bi-box-arrow-up"></i></div>
+          <h3 class="h5 mt-3">Ekstrak Arsip</h3>
+          <p class="text-body-secondary mb-0">Buka isi file ZIP, RAR, atau 7Z dan unduh isinya sebagai kumpulan file yang rapi.</p>
         </div>
       </a>
     </div>

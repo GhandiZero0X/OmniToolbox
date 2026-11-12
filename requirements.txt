@@ -20,6 +20,11 @@ pdf2docx>=0.5.8
 docx2pdf>=0.1.8; sys_platform == "win32"
 python-pptx>=0.6.23
 
+# ===== Archive =====
+py7zr>=0.21.0
+rarfile>=4.1
+zipfile36>=0.1.3
+
 # ===== Utility =====
 tqdm==4.66.6
 
