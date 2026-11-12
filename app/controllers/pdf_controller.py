@@ -359,3 +359,56 @@ def pdf_to_word_process():
 
     results = merge_results(entries, processed)
     return build_job_response(job_id, results, output_dir, show_savings=False)
+
+# =========================================================
+# SPLIT PDF
+# =========================================================
+
+SPLIT_MAX_FILES = 10
+
+
+@bp.get("/split")
+def split_page():
+    cfg = current_app.config
+    return render_template(
+        "pdf/split.html",
+        max_files=SPLIT_MAX_FILES,
+        max_mb=cfg["MAX_UPLOAD_MB"],
+    )
+
+
+@bp.post("/split/process")
+@limiter.limit("10 per minute")
+def split_process():
+    files, error = get_upload_files(SPLIT_MAX_FILES)
+    if error:
+        return jsonify(error=error), 400
+
+    mode = request.form.get("mode", "every_page")
+    if mode not in ("every_page", "range"):
+        mode = "every_page"
+
+    page_range = request.form.get("page_range", "")
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+
+    try:
+        entries = save_uploaded_files(
+            files, upload_dir, {".pdf"}, validator=pdf_service.is_pdf_file
+        )
+        valid_entries = [e for e in entries if e["path"] is not None]
+        
+        processed = pdf_service.split_pdfs(
+            valid_entries, output_dir, mode, page_range
+        )
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    # Gabungkan hasil file yang ditolak (jika format salah) dengan hasil proses
+    rejected = [
+        {"name": e["original_name"], "status": "failed", "error": e["error"]}
+        for e in entries if e["path"] is None
+    ]
+    results = processed + rejected
+
+    return build_job_response(job_id, results, output_dir, show_savings=False)

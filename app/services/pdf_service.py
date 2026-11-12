@@ -574,3 +574,129 @@ def pdf_to_words(entries, output_dir, max_pages: int = 50,
             results[future_to_index[future]] = future.result()
 
     return results
+
+# =========================================================
+# SPLIT PDF
+# =========================================================
+
+def parse_page_range(range_str: str, total_pages: int) -> list[int]:
+    """
+    Ubah string seperti '1-3, 5, 8-10' menjadi list index 0-based: [0,1,2,4,7,8,9].
+    Angka 1 di UI = index 0 di list.
+    """
+    pages = set()
+    if not range_str or not range_str.strip():
+        return []
+
+    for part in range_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            try:
+                start, end = map(int, part.split("-"))
+                # Pastikan urutan benar (misal user ketik 5-2, jadikan 2-5)
+                start, end = min(start, end), max(start, end)
+                for p in range(start, end + 1):
+                    if 1 <= p <= total_pages:
+                        pages.add(p - 1)
+            except ValueError:
+                continue
+        else:
+            try:
+                p = int(part)
+                if 1 <= p <= total_pages:
+                    pages.add(p - 1)
+            except ValueError:
+                continue
+
+    return sorted(list(pages))
+
+
+def split_pdf(path, output_dir, original_name: str, mode: str, page_range_str: str) -> list:
+    """
+    Pisahkan PDF. Tidak melempar error, mengembalikan list of dict (karena 1 file bisa jadi banyak output).
+    mode: "every_page" atau "range"
+    """
+    from pypdf import PdfReader, PdfWriter
+    
+    path, output_dir = Path(path), Path(output_dir)
+    results = []
+
+    try:
+        reader = PdfReader(str(path))
+        if reader.is_encrypted:
+            try:
+                reader.decrypt("")
+            except Exception:
+                return [{"name": original_name, "status": "failed", "error": "PDF terenkripsi."}]
+                
+        total_pages = len(reader.pages)
+        if total_pages == 0:
+            return [{"name": original_name, "status": "failed", "error": "PDF kosong."}]
+
+        # Kalkulasi porsi ukuran file asli per halaman untuk laporan
+        original_size = path.stat().st_size
+        per_page_size = original_size // total_pages
+
+        if mode == "every_page":
+            for i in range(total_pages):
+                writer = PdfWriter()
+                writer.add_page(reader.pages[i])
+                
+                out_name = f"{path.stem}_hal_{i+1}.pdf"
+                out_path = output_dir / out_name
+                
+                with open(out_path, "wb") as fh:
+                    writer.write(fh)
+                    
+                results.append({
+                    "name": f"{original_name} (hal. {i+1})",
+                    "status": "success",
+                    "output": out_name,
+                    "original_size": per_page_size,
+                    "new_size": out_path.stat().st_size,
+                    "saved_percent": 0,
+                    "kept_original": False,
+                    "badge": f"Hal {i+1}",
+                })
+                
+        elif mode == "range":
+            pages_to_extract = parse_page_range(page_range_str, total_pages)
+            if not pages_to_extract:
+                return [{"name": original_name, "status": "failed", "error": "Rentang halaman tidak valid atau kosong."}]
+                
+            writer = PdfWriter()
+            for p_idx in pages_to_extract:
+                writer.add_page(reader.pages[p_idx])
+                
+            out_name = f"{path.stem}_terpilih.pdf"
+            out_path = output_dir / out_name
+            
+            with open(out_path, "wb") as fh:
+                writer.write(fh)
+                
+            results.append({
+                "name": f"{original_name} (ekstrak)",
+                "status": "success",
+                "output": out_name,
+                "original_size": per_page_size * len(pages_to_extract),
+                "new_size": out_path.stat().st_size,
+                "saved_percent": 0,
+                "kept_original": False,
+                "badge": f"{len(pages_to_extract)} hal.",
+            })
+            
+    except Exception as exc:  # noqa: BLE001
+        return [{"name": original_name, "status": "failed", "error": f"Gagal memisahkan PDF: {exc}"}]
+
+    return results
+
+
+def split_pdfs(entries, output_dir, mode: str, page_range_str: str) -> list:
+    """Proses banyak PDF secara berurutan. Mengembalikan flat list hasil."""
+    all_results = []
+    for e in entries:
+        batch = split_pdf(e["path"], output_dir, e["original_name"], mode, page_range_str)
+        all_results.extend(batch)
+    return all_results
