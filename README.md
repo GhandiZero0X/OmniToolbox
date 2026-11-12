@@ -53,15 +53,13 @@
 |---|---|
 | Image convert & compress | `Pillow`, `pillow-heif` |
 | Remove text / watermark | `opencv-python-headless`, `numpy` (`cv2.inpaint`) |
-| Image upscale | **Real-ESRGAN ncnn Vulkan** (standalone external program; requires a Vulkan-capable GPU) |
+| Image upscale | **Real-ESRGAN ncnn Vulkan** (requires Vulkan-capable GPU) |
 | Video & audio | **FFmpeg** (system binary) |
-| Word → PDF | `docx2pdf` (requires Microsoft Word) |
-| PDF → Word | `pdf2docx` |
-| Image → PDF | `img2pdf` |
-| PDF → Image | `PyMuPDF` (`fitz`) |
-| Merge PDF | `pypdf` |
+| PDF manipulation | `pypdf`, `PyMuPDF` (`fitz`), `img2pdf` |
+| Word ↔ PDF | `docx2pdf`, `pdf2docx` (Requires Microsoft Word) |
+| Excel & PPT ↔ PDF | `win32com.client` (COM Automation), `python-pptx` |
 | Compress PDF | **Ghostscript** (system binary) |
-| Zip | `zipfile` (Python standard library) |
+| Archive handling | `zipfile`, `py7zr`, `rarfile`, **WinRAR** (for RAR creation) |
 
 > ⚠️ **System dependencies:** FFmpeg and Ghostscript are external system programs, not Python packages. Install them separately before using the related features.
 >
@@ -75,6 +73,7 @@
 - [FFmpeg](https://ffmpeg.org/download.html) (for video conversion and audio extraction)
 - [Ghostscript](https://ghostscript.com/releases/gsdnld.html) (for PDF compression)
 - Microsoft Word installed (for Word → PDF conversion with `docx2pdf`)
+- WinRAR (optional, required only for creating `.rar` files).
 - A Vulkan-compatible GPU and up-to-date graphics driver (only for image upscaling)
 
 ### Install System Tools
@@ -326,15 +325,16 @@ docker run -p 8000:8000 --env-file .env omni-toolbox
 ## 🗺️ Roadmap
 
 - [x] Image converter and compressor
-- [x] Image → PDF
-- [x] Merge PDF and PDF → Image
+- [x] Image ↔ PDF
+- [x] Merge PDF, Split PDF, & Organize PDF
 - [x] Compress PDF
 - [x] Text / watermark remover
-- [x] Zip folder and files
+- [x] Zip / 7z / RAR Archive Utility
 - [x] MOV ↔ MP4 converter and MP3 extractor
-- [x] Word → PDF and PDF → Word
-- [x] Image upscaler (Real-ESRGAN with background processing and live progress)
-- [x] Batch processing and drag-and-drop upload
+- [x] Word ↔ PDF
+- [x] Excel & PowerPoint ↔ PDF
+- [x] Image upscaler (Real-ESRGAN background queue)
+- [x] Batch processing & drag-and-drop upload
 - [ ] Shared background job queue across workers (Celery + Redis)
 
 ---
