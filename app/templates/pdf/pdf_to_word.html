@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}PDF ke Word{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-file-earmark-word text-info me-2"></i>PDF ke Word</h1>
+    <p class="text-body-secondary mb-0">
+      Ubah PDF menjadi dokumen <code>.docx</code> yang bisa diedit. Setiap PDF menjadi satu file Word.
+    </p>
+  </div>
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('pdf.pdf_to_word_process') }}" method="post" enctype="multipart/form-data"
+        data-accept=".pdf" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret PDF ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas file PDF di sini</p>
+        <p class="text-body-secondary small mb-0">
+          Maksimal {{ max_files }} file &middot; total {{ max_mb }} MB &middot; maksimal {{ max_pages }} halaman per PDF
+        </p>
+        <input type="file" id="file-input" class="d-none" multiple accept=".pdf,application/pdf">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <div class="alert alert-secondary small mt-4 mb-0">
+        <i class="bi bi-info-circle me-1"></i>
+        Hasil terbaik untuk PDF berbasis teks. PDF hasil scan (gambar) butuh OCR dan tidak bisa diekstrak teksnya
+        dengan sempurna. Tata letak kompleks mungkin berubah.
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-file-earmark-word me-1"></i>Konversi ke Word
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil konversi</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Format</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

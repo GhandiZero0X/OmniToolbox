@@ -65,3 +65,10 @@ class Config:
 
     # PDF -> Gambar: batas jumlah halaman per PDF (mencegah abuse & memory blow-up)
     PDF_RENDER_MAX_PAGES = _env_int("PDF_RENDER_MAX_PAGES", 100)
+    
+    # ----- Word <-> PDF (docx2pdf + pdf2docx) -----
+    # Kosongkan agar dicari otomatis di PATH / instalasi default
+    # LIBREOFFICE_PATH = os.getenv("LIBREOFFICE_PATH", "")
+    WORD_TIMEOUT_SECONDS = _env_int("WORD_TIMEOUT_SECONDS", 120)
+    # Batas halaman PDF -> Word (pdf2docx sangat lambat untuk PDF besar)
+    PDF_TO_WORD_MAX_PAGES = _env_int("PDF_TO_WORD_MAX_PAGES", 50)

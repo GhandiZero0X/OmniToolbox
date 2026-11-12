@@ -59,7 +59,7 @@
 | Compress PDF | **Ghostscript** (system binary) |
 | Zip | `zipfile` (Python standard library) |
 
-> ⚠️ **Note:** FFmpeg, LibreOffice, and Ghostscript are **system programs**, not Python packages. They must be installed separately (see below).
+> ⚠️ **Note:** FFmpeg and Ghostscript are **system programs**, not Python packages. They must be installed separately (see below).
 >
 > Install only **one** OpenCV package (`opencv-python-headless`). Having several (`opencv-python`, `opencv-contrib-python`) installed together can break `import cv2`.
 
@@ -69,7 +69,6 @@
 
 * Python 3.10 or newer
 * [FFmpeg](https://ffmpeg.org/download.html)
-* [LibreOffice](https://www.libreoffice.org/download/download/)
 * [Ghostscript](https://ghostscript.com/releases/gsdnld.html)
 * *(Only for Upscale)* A GPU with Vulkan support (NVIDIA / AMD / Intel Arc) and an up-to-date graphics driver
 
@@ -78,25 +77,22 @@ Install the system tools:
 **Ubuntu / Debian**
 ```bash
 sudo apt update
-sudo apt install -y ffmpeg libreoffice ghostscript
+sudo apt install -y ffmpeg ghostscript
 ```
 
 **macOS (Homebrew)**
 ```bash
 brew install ffmpeg ghostscript
-brew install --cask libreoffice
 ```
 
 **Windows**
 
-1. Install FFmpeg, LibreOffice, and Ghostscript from their official websites.
+1. Install FFmpeg and Ghostscript from their official websites.
 2. Add the `bin` folder of FFmpeg and Ghostscript to your system `PATH`.
-3. Make sure `soffice` (LibreOffice) is reachable, or set its path in your `.env` file.
 
 Verify the installation:
 ```bash
 ffmpeg -version
-soffice --version
 gs --version
 ```
 
@@ -228,7 +224,7 @@ Run with Gunicorn:
 gunicorn -w 2 -b 0.0.0.0:8000 "app:create_app()" --timeout 300
 ```
 
-Or with Docker (requires a `Dockerfile` that installs `ffmpeg`, `libreoffice`, and `ghostscript`):
+Or with Docker (requires a `Dockerfile` that installs `ffmpeg` and `ghostscript`):
 
 ```bash
 docker build -t omni-toolbox .
@@ -248,7 +244,7 @@ docker run -p 8000:8000 --env-file .env omni-toolbox
 - [x] Text / watermark remover
 - [x] Zip folder
 - [ ] MOV → MP4 & MP3 extractor
-- [ ] Word ↔ PDF, PDF ↔ Word
+- [x] Word ↔ PDF, PDF ↔ Word
 - [x] Image upscaler (Real-ESRGAN, background queue with live progress)
 - [ ] Background job queue shared across workers (Celery + Redis)
 - [x] Batch processing & drag-and-drop upload

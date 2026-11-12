@@ -95,6 +95,24 @@
         </div>
       </a>
     </div>
+    <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('pdf.word_to_pdf_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-primary-subtle text-primary"><i class="bi bi-file-earmark-word"></i></div>
+          <h3 class="h5 mt-3">Word ke PDF</h3>
+          <p class="text-body-secondary mb-0">Ubah dokumen Word (.doc/.docx) menjadi PDF dengan tata letak terjaga.</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('pdf.pdf_to_word_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-file-earmark-text"></i></div>
+          <h3 class="h5 mt-3">PDF ke Word</h3>
+          <p class="text-body-secondary mb-0">Ekstrak isi PDF menjadi dokumen Word (.docx) yang bisa diedit.</p>
+        </div>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -103,7 +121,6 @@
   <div class="row g-3">
     {% for icon, title in [
       ('bi-camera-video', 'MOV ke MP4 / MP3'),
-      ('bi-file-earmark-word', 'Word ke PDF , PDF ke Word'),
     ] %}
     <div class="col-6 col-md-4 col-lg-2">
       <div class="card h-100 coming-soon text-center">

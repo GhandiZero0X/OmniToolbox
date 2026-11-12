@@ -265,3 +265,97 @@ def pdf_to_image_process():
 
     return build_job_response(job_id, results, output_dir,
                               show_savings=False, previews=True)
+
+# =========================================================
+# WORD -> PDF (via Microsoft Word / docx2pdf)
+# =========================================================
+
+WORD_MAX_FILES = 10
+
+
+@bp.get("/word-to-pdf")
+def word_to_pdf_page():
+    cfg = current_app.config
+    ready = pdf_service.is_word_via_com_available()
+    return render_template(
+        "pdf/word_to_pdf.html",
+        max_files=WORD_MAX_FILES,
+        max_mb=cfg["MAX_UPLOAD_MB"],
+        soffice_ready=ready,             # nama template lama, isinya sekarang "word_ready"
+        setup_hint=pdf_service.WORD_SETUP_HINT,
+    )
+
+
+@bp.post("/word-to-pdf/process")
+@limiter.limit("5 per minute")
+def word_to_pdf_process():
+    cfg = current_app.config
+
+    if not pdf_service.is_word_via_com_available():
+        return jsonify(error=pdf_service.WORD_SETUP_HINT), 503
+
+    files, error = get_upload_files(WORD_MAX_FILES)
+    if error:
+        return jsonify(error=error), 400
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+
+    try:
+        entries = save_uploaded_files(
+            files, upload_dir, pdf_service.WORD_INPUT_EXTENSIONS,
+            validator=pdf_service.is_word_file,
+        )
+        valid_entries = [e for e in entries if e["path"] is not None]
+        processed = pdf_service.word_to_pdfs(
+            valid_entries, output_dir, cfg["WORD_TIMEOUT_SECONDS"],
+        )
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    results = merge_results(entries, processed)
+    return build_job_response(job_id, results, output_dir, show_savings=False)
+
+
+# =========================================================
+# PDF -> WORD
+# =========================================================
+
+PDF_TO_WORD_MAX_FILES = 5
+
+
+@bp.get("/pdf-to-word")
+def pdf_to_word_page():
+    cfg = current_app.config
+    return render_template(
+        "pdf/pdf_to_word.html",
+        max_files=PDF_TO_WORD_MAX_FILES,
+        max_mb=cfg["MAX_UPLOAD_MB"],
+        max_pages=cfg["PDF_TO_WORD_MAX_PAGES"],
+    )
+
+
+@bp.post("/pdf-to-word/process")
+@limiter.limit("3 per minute")
+def pdf_to_word_process():
+    cfg = current_app.config
+
+    files, error = get_upload_files(PDF_TO_WORD_MAX_FILES)
+    if error:
+        return jsonify(error=error), 400
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+
+    try:
+        entries = save_uploaded_files(
+            files, upload_dir, {".pdf"}, validator=pdf_service.is_pdf_file
+        )
+        valid_entries = [e for e in entries if e["path"] is not None]
+        processed = pdf_service.pdf_to_words(
+            valid_entries, output_dir,
+            cfg["PDF_TO_WORD_MAX_PAGES"], cfg["PDF_WORKERS"],
+        )
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    results = merge_results(entries, processed)
+    return build_job_response(job_id, results, output_dir, show_savings=False)

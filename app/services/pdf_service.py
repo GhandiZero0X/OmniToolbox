@@ -1,3 +1,5 @@
+import sys
+import uuid
 import glob
 import os
 import shutil
@@ -399,3 +401,176 @@ def render_pdfs(entries, output_dir, dpi: int, fmt: str, quality: int,
     for batch in batches:
         flat.extend(batch)
     return flat
+
+# =========================================================
+# WORD -> PDF via Microsoft Word (docx2pdf)
+# =========================================================
+
+WORD_INPUT_EXTENSIONS = {".docx"}   # .doc lama tidak didukung docx2pdf
+
+WORD_SETUP_HINT = (
+    "Microsoft Word tidak terdeteksi. Fitur ini membutuhkan Microsoft Word terinstall & teraktivasi. "
+    "Jika Word sudah ada, pastikan `pip install docx2pdf` sudah berhasil."
+)
+
+
+def is_word_via_com_available() -> bool:
+    """Cek apakah Microsoft Word bisa dipakai via COM (Windows + docx2pdf)."""
+    if os.name != "nt":
+        return False
+    try:
+        import win32com.client  # noqa: F401
+        from docx2pdf import convert  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def is_word_file(path) -> bool:
+    """Cek signature .docx (ZIP archive dengan header PK)."""
+    try:
+        with open(path, "rb") as fh:
+            return fh.read(4) == b"PK\x03\x04"
+    except OSError:
+        return False
+
+
+def word_to_pdf(path, output_dir, original_name: str, timeout: int = 120) -> dict:
+    """Konversi satu .docx ke PDF via Microsoft Word. Tidak melempar error."""
+    path, output_dir = Path(path), Path(output_dir)
+    result = {"name": original_name, "status": "failed", "error": None}
+
+    if path.suffix.lower() != ".docx":
+        result["error"] = "Hanya file .docx yang didukung. Simpan .doc lama sebagai .docx dulu."
+        return result
+
+    # COM harus diinisialisasi di thread yang sama dengan Word
+    com_initialized = False
+    try:
+        import pythoncom
+        pythoncom.CoInitialize()
+        com_initialized = True
+    except Exception:  # noqa: BLE001 - beberapa versi docx2pdf init sendiri
+        pass
+
+    try:
+        from docx2pdf import convert
+
+        original_size = path.stat().st_size
+        expected_out = output_dir / f"{path.stem}.pdf"
+        expected_out.unlink(missing_ok=True)  # hindari konflik dengan hasil lama
+
+        convert(str(path.resolve()), str(expected_out.resolve()))
+
+        if not expected_out.exists() or expected_out.stat().st_size == 0:
+            expected_out.unlink(missing_ok=True)
+            result["error"] = "Word tidak menghasilkan file PDF."
+            return result
+
+        result.update({
+            "status": "success",
+            "output": expected_out.name,
+            "original_size": original_size,
+            "new_size": expected_out.stat().st_size,
+            "saved_percent": 0,
+            "kept_original": False,
+            "badge": "PDF",
+        })
+    except Exception as exc:  # noqa: BLE001
+        result["error"] = f"Gagal mengonversi Word: {exc}"
+    finally:
+        if com_initialized:
+            try:
+                import pythoncom
+                pythoncom.CoUninitialize()
+            except Exception:  # noqa: BLE001
+                pass
+
+    return result
+
+
+def word_to_pdfs(entries, output_dir, timeout: int = 120, max_workers: int = 1) -> list:
+    """
+    Konversi banyak Word. SELALU serial (bukan paralel) — Word COM tidak
+    thread-safe, dua instance Word di thread berbeda bisa crash.
+    Parameter max_workers dipertahankan hanya untuk signature compatibility.
+    """
+    return [
+        word_to_pdf(e["path"], output_dir, e["original_name"], timeout)
+        for e in entries
+    ]
+
+
+# =========================================================
+# PDF -> WORD (pdf2docx)
+# =========================================================
+
+def pdf_to_word(path, output_dir, original_name: str, max_pages: int = 50) -> dict:
+    """Konversi satu PDF ke DOCX via pdf2docx. Tidak melempar error."""
+    from pdf2docx import Converter
+    import fitz
+
+    path, output_dir = Path(path), Path(output_dir)
+    result = {"name": original_name, "status": "failed", "error": None}
+    out_name = f"{path.stem}.docx"
+    out_path = output_dir / out_name
+
+    try:
+        original_size = path.stat().st_size
+
+        # Cek jumlah halaman dulu (proteksi batas waktu proses)
+        with fitz.open(str(path)) as doc:
+            page_count = len(doc)
+        if page_count == 0:
+            return {**result, "error": "PDF tidak memiliki halaman."}
+        if page_count > max_pages:
+            return {**result, "error":
+                    f"PDF memiliki {page_count} halaman, melebihi batas {max_pages}."}
+
+        cv = Converter(str(path))
+        try:
+            cv.convert(str(out_path), start=0, end=page_count)
+        finally:
+            cv.close()
+
+        if not out_path.exists() or out_path.stat().st_size == 0:
+            out_path.unlink(missing_ok=True)
+            return {**result, "error":
+                    "pdf2docx tidak menghasilkan file. PDF mungkin hasil scan "
+                    "(butuh OCR) atau strukturnya terlalu kompleks."}
+
+        result.update({
+            "status": "success",
+            "output": out_name,
+            "original_size": original_size,
+            "new_size": out_path.stat().st_size,
+            "saved_percent": 0,
+            "kept_original": False,
+            "badge": "DOCX",
+            "info": f"{page_count} halaman",
+        })
+    except Exception as exc:  # noqa: BLE001
+        out_path.unlink(missing_ok=True)
+        result["error"] = f"Gagal mengonversi PDF ke Word: {exc}"
+
+    return result
+
+
+def pdf_to_words(entries, output_dir, max_pages: int = 50,
+                 max_workers: int = 2) -> list:
+    """Konversi banyak PDF ke DOCX secara paralel."""
+    results = [None] * len(entries)
+    if not entries:
+        return results
+
+    with ThreadPoolExecutor(max_workers=max(1, max_workers)) as executor:
+        future_to_index = {
+            executor.submit(
+                pdf_to_word, e["path"], output_dir, e["original_name"], max_pages,
+            ): i
+            for i, e in enumerate(entries)
+        }
+        for future in as_completed(future_to_index):
+            results[future_to_index[future]] = future.result()
+
+    return results
