@@ -700,3 +700,76 @@ def split_pdfs(entries, output_dir, mode: str, page_range_str: str) -> list:
         batch = split_pdf(e["path"], output_dir, e["original_name"], mode, page_range_str)
         all_results.extend(batch)
     return all_results
+
+# =========================================================
+# ORGANIZE PDF (RENDER THUMBNAILS & SIMPAN PERUBAHAN)
+# =========================================================
+
+def extract_pdf_thumbnails(pdf_paths: list, output_dir) -> list:
+    """
+    Render halaman dari BEBERAPA PDF menjadi gambar PNG.
+    Mengembalikan list of dict: [{"file_id": 0, "filename": "pdf0_0.png"}, ...]
+    """
+    import fitz
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    thumbnails = []
+    for file_id, pdf_path in enumerate(pdf_paths):
+        try:
+            doc = fitz.open(str(pdf_path))
+            for page_idx in range(len(doc)):
+                page = doc.load_page(page_idx)
+                # Render resolusi lebih tinggi (400px) agar bagus saat di-zoom
+                zoom = 400 / page.rect.width if page.rect.width > 0 else 1
+                mat = fitz.Matrix(zoom, zoom)
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+                
+                filename = f"pdf{file_id}_p{page_idx}.png"
+                img_path = output_dir / filename
+                pix.save(str(img_path))
+                
+                thumbnails.append({
+                    "file_id": file_id,
+                    "page_index": page_idx,
+                    "filename": filename
+                })
+            doc.close()
+        except Exception as exc:
+            raise ValueError(f"Gagal membaca PDF {file_id + 1}: {exc}")
+            
+    return thumbnails
+
+def save_organized_pdf(pdf_paths: list, output_path, operations: list):
+    """
+    Simpan PDF gabungan berdasarkan urutan, rotasi, dan asal file.
+    operations = [{"file_id": 0, "page_index": 2, "rotation": 90}, ...]
+    """
+    from pypdf import PdfReader, PdfWriter
+    
+    output_path = Path(output_path)
+    readers = [PdfReader(str(p)) for p in pdf_paths]
+    writer = PdfWriter()
+    
+    try:
+        for op in operations:
+            file_id = op["file_id"]
+            page_idx = op["page_index"]
+            rot = op.get("rotation", 0)
+            
+            if 0 <= file_id < len(readers):
+                reader = readers[file_id]
+                if 0 <= page_idx < len(reader.pages):
+                    page = reader.pages[page_idx]
+                    if rot > 0:
+                        page.rotate(rot)
+                    writer.add_page(page)
+                
+        if len(writer.pages) == 0:
+            raise ValueError("PDF tidak boleh kosong. Sisakan minimal 1 halaman.")
+            
+        with open(output_path, "wb") as fh:
+            writer.write(fh)
+    except Exception as exc:
+        output_path.unlink(missing_ok=True)
+        raise ValueError(f"Gagal menyimpan PDF: {exc}")

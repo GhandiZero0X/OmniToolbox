@@ -1,11 +1,11 @@
 import shutil
-
-from flask import Blueprint, current_app, jsonify, render_template, request
+from pathlib import Path
+from flask import Blueprint, current_app, jsonify, render_template, request, url_for
 from werkzeug.utils import secure_filename
 
 from ..extensions import limiter
 from ..services import image_service, pdf_service
-from ..utils.file_utils import merge_results, save_uploaded_files
+from ..utils.file_utils import merge_results, save_uploaded_files, is_valid_job_id
 from .helpers import build_job_response, get_upload_files, new_job_dirs
 
 bp = Blueprint("pdf", __name__, url_prefix="/pdf")
@@ -412,3 +412,99 @@ def split_process():
     results = processed + rejected
 
     return build_job_response(job_id, results, output_dir, show_savings=False)
+
+# =========================================================
+# ORGANIZE PDF
+# =========================================================
+
+@bp.get("/organize")
+def organize_page():
+    return render_template("pdf/organize.html")
+
+
+@bp.post("/organize/upload")
+@limiter.limit("10 per minute")
+def organize_upload():
+    """Terima BANYAK file PDF sekaligus."""
+    files, error = get_upload_files(max_files=10) # Maksimal 10 PDF
+    if error: return jsonify(error=error), 400
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+    upload_dir.mkdir(parents=True, exist_ok=True) 
+    pdf_paths = []
+
+    try:
+        for i, file in enumerate(files):
+            # Simpan dengan nama berurutan agar aman
+            pdf_path = upload_dir / f"source_{i}.pdf"
+            file.save(pdf_path)
+            if not pdf_service.is_pdf_file(pdf_path):
+                raise ValueError(f"File '{file.filename}' bukan PDF valid.")
+            pdf_paths.append(pdf_path)
+            
+        thumbs_dir = output_dir / "thumbs"
+        thumbnails = pdf_service.extract_pdf_thumbnails(pdf_paths, thumbs_dir)
+        
+        # Pindahkan source PDF ke output_dir agar bisa dibaca saat save
+        for i, p in enumerate(pdf_paths):
+            shutil.move(str(p), str(output_dir / f"source_{i}.pdf"))
+            
+    except Exception as exc:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+        shutil.rmtree(output_dir, ignore_errors=True)
+        return jsonify(error=str(exc)), 500
+
+    # Kembalikan URL thumbnail
+    thumb_urls = [
+        {
+            "file_id": t["file_id"],
+            "page_index": t["page_index"],
+            "url": url_for("main.preview", job_id=job_id, filename=f"thumbs/{t['filename']}")
+        }
+        for t in thumbnails
+    ]
+
+    return jsonify({
+        "job_id": job_id,
+        "total": len(thumbnails),
+        "thumbnails": thumb_urls
+    })
+
+
+@bp.post("/organize/save/<job_id>")
+@limiter.limit("20 per minute")
+def organize_save(job_id):
+    """Simpan PDF gabungan dari beberapa file."""
+    if not is_valid_job_id(job_id):
+        return jsonify(error="Job ID tidak valid."), 400
+
+    output_dir = Path(current_app.config["OUTPUT_FOLDER"]) / job_id
+    
+    # Ambil semua file source_X.pdf yang ada di folder job
+    source_files = sorted(output_dir.glob("source_*.pdf"), key=lambda p: int(p.stem.split("_")[1]))
+    if not source_files:
+        return jsonify(error="File asli tidak ditemukan atau sesi kedaluwarsa."), 404
+
+    data = request.get_json()
+    if not data or "operations" not in data:
+        return jsonify(error="Data tidak valid."), 400
+
+    final_path = output_dir / "organized.pdf"
+    
+    try:
+        pdf_service.save_organized_pdf(source_files, final_path, data["operations"])
+    except Exception as exc:
+        return jsonify(error=str(exc)), 500
+
+    download_url = url_for("main.download", job_id=job_id, filename="organized.pdf")
+    
+    # Bersihkan file sementara
+    for p in source_files:
+        p.unlink(missing_ok=True)
+    shutil.rmtree(output_dir / "thumbs", ignore_errors=True)
+
+    return jsonify({
+        "success": True,
+        "download_url": download_url,
+        "final_size": final_path.stat().st_size
+    })

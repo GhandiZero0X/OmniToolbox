@@ -118,3 +118,43 @@
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.25);
   pointer-events: none;
 }
+
+/* Organize PDF */
+.page-item {
+  cursor: grab;
+}
+.page-item:active {
+  cursor: grabbing;
+}
+.page-card {
+  background: var(--bs-tertiary-bg);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.page-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+}
+.page-card img {
+  object-fit: contain;
+  height: 200px;
+  width: 100%;
+}
+/* Class saat elemen di-drag */
+.sortable-ghost {
+  opacity: 0.4;
+  background-color: var(--bs-primary-bg-subtle);
+}
+
+/* Warna Border Organize PDF */
+.page-card { border-width: 4px !important; border-style: solid !important; }
+.border-pdf-0 { border-color: #dc3545 !important; } /* Merah */
+.border-pdf-1 { border-color: #ffc107 !important; } /* Kuning */
+.border-pdf-2 { border-color: #198754 !important; } /* Hijau */
+.border-pdf-3 { border-color: #0d6efd !important; } /* Biru */
+.border-pdf-4 { border-color: #6f42c1 !important; } /* Ungu */
+.border-pdf-5 { border-color: #fd7e14 !important; } /* Oranye */
+
+/* Modal Zoom */
+#zoomModal .modal-body { padding: 0; background: #333; text-align: center; }
+#zoomModal img { max-width: 100%; max-height: 80vh; object-fit: contain; }

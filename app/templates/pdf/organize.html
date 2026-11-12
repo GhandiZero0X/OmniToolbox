@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Atur Halaman PDF{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 1000px;">
+  <div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+      <h1 class="h3 mb-1"><i class="bi bi-grid text-primary me-2"></i>Atur Halaman PDF</h1>
+      <p class="text-body-secondary mb-0">Gabungkan beberapa PDF, tarik & lepas untuk mengubah urutan. Warna kotak menandakan file asal.</p>
+    </div>
+    <button id="reset-btn" class="btn btn-outline-secondary d-none" onclick="location.reload()">Mulai Ulang</button>
+  </div>
+
+  <!-- TAHAP 1: UPLOAD -->
+  <div id="upload-section">
+    <div class="dropzone" id="dropzone">
+      <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+      <p class="fw-semibold mb-1">Pilih atau seret BANYAK file PDF di sini</p>
+      <p class="text-body-secondary small mb-0">Bisa pilih beberapa file sekaligus (Maksimal 10 PDF)</p>
+      <input type="file" id="file-input" class="d-none" accept=".pdf" multiple>
+    </div>
+    <div id="alert-box" class="alert alert-danger d-none mt-3"></div>
+    <div id="loading-upload" class="text-center mt-4 d-none">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2 text-body-secondary">Membaca halaman PDF...</p>
+    </div>
+  </div>
+
+  <!-- TAHAP 2: INTERAKSI (Drag & Drop) -->
+  <div id="editor-section" class="d-none">
+    <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-body-tertiary rounded shadow-sm sticky-top" style="top: 70px; z-index: 100;">
+      <div class="fw-semibold"><span id="page-count">0</span> Halaman</div>
+      <div>
+        <button id="save-btn" class="btn btn-primary"><i class="bi bi-download me-1"></i>Simpan PDF Gabungan</button>
+      </div>
+    </div>
+
+    <div id="page-grid" class="row g-3">
+      <!-- Kartu Halaman di-generate JS -->
+    </div>
+    
+    <div id="loading-save" class="text-center mt-4 d-none">
+      <div class="spinner-border text-success" role="status"></div>
+      <p class="mt-2 text-body-secondary">Menyusun PDF baru...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Zoom -->
+<div class="modal fade" id="zoomModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Pratinjau Halaman</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <img id="zoom-image" src="" alt="Zoom">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Library SortableJS -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/organize.js') }}"></script>
+{% endblock %}

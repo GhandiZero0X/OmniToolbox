@@ -23,14 +23,14 @@ def index():
     return render_template("index.html")
 
 
-@bp.get("/download/<job_id>/<filename>")
+@bp.get("/download/<job_id>/<path:filename>")
 @limiter.exempt
 def download(job_id, filename):
     """Unduh file hasil proses. send_from_directory menolak path traversal."""
     return send_from_directory(_job_directory(job_id), filename, as_attachment=True)
 
 
-@bp.get("/preview/<job_id>/<filename>")
+@bp.get("/preview/<job_id>/<path:filename>")
 @limiter.exempt
 def preview(job_id, filename):
     """Tampilkan hasil berupa gambar langsung di browser (hanya JPG/PNG/WebP)."""
