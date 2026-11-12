@@ -11,6 +11,7 @@ numpy
 # Dipakai untuk fitur Hapus Teks / Watermark. Versi "headless" cukup untuk server.
 # Jangan pasang bersamaan dengan opencv-python / opencv-contrib-python (bisa bentrok).
 opencv-python-headless>=4.9
+rembg>=2.0.50
 
 # ===== PDF & Document =====
 img2pdf>=0.5

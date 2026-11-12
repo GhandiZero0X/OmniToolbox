@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Hapus Background{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-person-bounding-box text-primary me-2"></i>Hapus Background</h1>
+    <p class="text-body-secondary mb-0">
+      Hapus latar belakang foto secara otomatis dengan AI. Hasilnya bisa transparan atau diganti warna solid.
+    </p>
+  </div>
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('image.remove_bg_process') }}" method="post" enctype="multipart/form-data"
+        data-accept="{{ accept }}" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret gambar ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas gambar di sini</p>
+        <p class="text-body-secondary small mb-0">Maksimal {{ max_files }} file &middot; total {{ max_mb }} MB</p>
+        <input type="file" id="file-input" class="d-none" multiple accept="{{ accept }}">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Latar Belakang Hasil</label>
+          <div class="d-flex gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="bg_choice" id="bg_transparent" value="transparent" checked>
+              <label class="form-check-label" for="bg_transparent">Transparan (PNG)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="bg_choice" id="bg_color_opt" value="color">
+              <label class="form-check-label" for="bg_color_opt">Warna Solid (JPG)</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 d-none" id="color-picker-group">
+          <label for="bg_color" class="form-label fw-semibold">Pilih Warna</label>
+          <input type="color" class="form-control form-control-color w-100" id="bg_color" name="bg_color" value="#ffffff" title="Pilih warna background">
+        </div>
+        
+        <div class="col-12" id="quality-group">
+          <label for="quality" class="form-label fw-semibold">Kualitas JPG: <output id="quality-value" for="quality">95</output>%</label>
+          <input type="range" class="form-range" id="quality" name="quality" min="50" max="100" step="5" value="95" data-output="quality-value">
+        </div>
+      </div>
+
+      <div class="alert alert-warning small mt-4">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Proses ini menggunakan AI dan bisa memakan waktu beberapa detik per gambar. Pada penggunaan pertama, server akan mengunduh model AI.
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress"><div id="progress-bar" class="progress-bar" style="width: 0%"></div></div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-magic me-1"></i>Hapus Background
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Hasil -->
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#"><i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)</a>
+      </div>
+      <p class="small text-body-secondary">Klik gambar mini untuk melihat hasil transparansi/warna secara penuh.</p>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th>File</th><th class="text-end">Asli</th><th class="text-end">Hasil</th><th class="text-end">Format</th><th></th></tr></thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Tampilkan color picker hanya jika memilih "Warna Solid"
+  (function () {
+    var radios = document.querySelectorAll('input[name="bg_choice"]');
+    var colorGroup = document.getElementById("color-picker-group");
+    var qualityGroup = document.getElementById("quality-group");
+
+    function sync() {
+      var isColor = document.getElementById("bg_color_opt").checked;
+      colorGroup.classList.toggle("d-none", !isColor);
+      // Kualitas hanya relevan untuk JPG (warna solid)
+      qualityGroup.classList.toggle("d-none", !isColor);
+    }
+    radios.forEach(r => r.addEventListener("change", sync));
+    sync();
+  })();
+</script>
+{% endblock %}

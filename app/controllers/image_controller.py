@@ -4,7 +4,7 @@ from functools import partial
 from flask import Blueprint, current_app, jsonify, render_template, request, url_for
 
 from ..extensions import limiter
-from ..services import image_service, upscale_service, watermark_service
+from ..services import image_service, upscale_service, watermark_service, bg_service
 from ..services.job_service import Job
 from ..utils.file_utils import merge_results, save_uploaded_files
 from .helpers import build_job_payload, build_job_response, get_upload_files, new_job_dirs
@@ -266,3 +266,48 @@ def upscale_status(job_id):
         job_id, job.final_results(), job.output_dir, show_savings=False, previews=True
     )
     return jsonify(state="done", **payload)
+
+# ---------------------------------------------------------
+# Hapus Background
+# ---------------------------------------------------------
+
+@bp.get("/remove-bg")
+def remove_bg_page():
+    context = _page_context()
+    # Menggunakan input image standar
+    context["accept"] = ",".join(sorted(image_service.SUPPORTED_INPUT))
+    return render_template("image/remove_bg.html", **context)
+
+
+@bp.post("/remove-bg/process")
+@limiter.limit("5 per minute") # Limit lebih ketat karena AI berat
+def remove_bg_process():
+    cfg = current_app.config
+
+    files, error = get_upload_files()
+    if error:
+        return jsonify(error=error), 400
+
+    bg_choice = request.form.get("bg_choice", "transparent")
+    bg_color = request.form.get("bg_color", "#ffffff")
+    
+    # Validasi warna heksadesimal sederhana
+    if not bg_color.startswith("#") or len(bg_color) != 7:
+        bg_color = "#ffffff"
+
+    quality = image_service.clamp_quality(request.form.get("quality"), default=95)
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+
+    try:
+        entries = save_uploaded_files(files, upload_dir, image_service.SUPPORTED_INPUT)
+        valid_entries = [e for e in entries if e["path"] is not None]
+        
+        processed = bg_service.remove_backgrounds(
+            valid_entries, output_dir, bg_choice, bg_color, quality, max_workers=1
+        )
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    results = merge_results(entries, processed)
+    return build_job_response(job_id, results, output_dir, show_savings=False, previews=True)
