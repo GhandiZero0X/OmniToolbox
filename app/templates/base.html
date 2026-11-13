@@ -81,10 +81,11 @@
             </a>
           </li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('social.instagram_page', 'social.youtube_page') }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Social</a>
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('social.instagram_page', 'social.youtube_page', 'social.tiktok_page') }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Social</a>
             <ul class="dropdown-menu">
-              <li><a class="dropdown-item {{ 'active' if ep == 'social.instagram_page' }}" href="{{ url_for('social.instagram_page') }}"><i class="bi bi-instagram me-2 text-danger"></i>Instagram Downloader</a></li>
-              <li><a class="dropdown-item {{ 'active' if ep == 'social.youtube_page' }}" href="{{ url_for('social.youtube_page') }}"><i class="bi bi-youtube me-2 text-danger"></i>YouTube Downloader</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'social.instagram_page' }}" href="{{ url_for('social.instagram_page') }}"><i class="bi bi-instagram me-2 text-danger"></i>Instagram</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'social.youtube_page' }}" href="{{ url_for('social.youtube_page') }}"><i class="bi bi-youtube me-2 text-danger"></i>YouTube</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'social.tiktok_page' }}" href="{{ url_for('social.tiktok_page') }}"><i class="bi bi-tiktok me-2 text-dark"></i>TikTok</a></li>
             </ul>
           </li>
         </ul>
