@@ -1,6 +1,6 @@
 # 🧰 OmniToolbox
 
-> An all-in-one web utility suite to convert, compress, merge, and upscale your images, videos, audio, and documents in one place.
+> An all-in-one web utility suite to convert, compress, merge, organize, upscale, download, and scrape media (images, videos, audio, documents, and social media) in one place.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-MVC-lightgrey?style=flat-square&logo=flask&logoColor=white)
@@ -13,217 +13,146 @@
 ## ✨ Features
 
 ### 🖼️ Image Suite
-
 - **Format Converter:** Convert between **JPG, JPEG, PNG, WebP, and HEIC** formats.
 - **Image Compression:** Reduce the file size of JPG, JPEG, PNG, WebP, and HEIC images while maintaining visual quality.
-- **Image Upscaler:** Enlarge images by **2x, 3x, or 4x** using [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) ncnn Vulkan. Supports photo and anime/illustration models, with background processing and live progress updates.
-- **Text / Watermark Remover:** Remove text or watermarks from selected areas. Select an area on the image preview and process multiple images using OpenCV inpainting.
+- **Image Upscaler:** Enlarge images by **2x, 3x, or 4x** using [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) ncnn Vulkan. Supports photo and anime models, with background processing and live progress updates.
+- **Text / Watermark Remover:** Remove text or watermarks from selected areas using OpenCV inpainting.
+- **AI Background Remover:** Automatically remove image backgrounds using AI (`rembg`). Replace the background with a solid color or keep it transparent (PNG).
 
 ### 🎬 Media Suite (Video & Audio)
-
 - **Video Converter:** Convert between **MOV and MP4** using H.264 video and AAC audio for broad compatibility.
 - **Audio Extractor:** Extract **MP3** audio tracks directly from video files.
 
-### 📄 Document Suite
-
-- **Word to PDF:** Convert `.docx` files to PDF while preserving the document layout. Requires Microsoft Word to be installed.
-- **PDF to Word:** Convert PDF files into editable `.docx` documents.
-- **Image to PDF:** Combine multiple images into one PDF. Reorder pages, select page size (image size, A4, or Letter), and configure margins. JPEG images are embedded without re-compression.
-- **PDF to Image:** Export PDF pages as **JPG** or **PNG**, with a configurable DPI.
+### 📄 Document & PDF Suite
+- **Image to PDF:** Combine multiple images into one PDF. Reorder pages, select page size (image size, A4, or Letter), and configure margins.
+- **PDF to Image:** Export PDF pages as **JPG** or **PNG** with configurable DPI.
 - **Merge PDF:** Combine multiple PDF files into a single document.
+- **Split PDF:** Split a PDF into individual pages, or extract specific page ranges into a new document.
+- **Organize PDF:** Interactively arrange PDF pages. Drag & drop to reorder, rotate pages, delete pages, and merge multiple PDFs into one (with color-coded borders and zoom preview).
 - **Compress PDF:** Reduce PDF file sizes using Ghostscript.
+- **Word to PDF:** Convert `.docx` files to PDF. Requires Microsoft Word.
+- **PDF to Word:** Convert PDF files into editable `.docx` documents.
+- **Excel to PDF & PowerPoint to PDF:** Convert Office files to PDF via COM Automation.
+- **PDF to PowerPoint:** Convert PDF pages into an image-based `.pptx` presentation.
 
 ### 📦 Archive Utility
+- **Create Archive:** Package files or entire folders into `.zip`, `.7z`, or `.rar` while preserving the folder structure.
+- **Extract Archive:** Extract contents from `.zip`, `.7z`, and `.rar` files safely.
 
-- **Zip Folder / Files:** Package multiple files or an entire folder into one `.zip` archive while preserving the folder structure.
+### 🌐 Social Media Downloader & Scraper
+- **Instagram Downloader:** Download Reels, Videos, Photos (Carousels), and Stories. Includes options to extract video-only or thumbnail-only from Stories.
+- **YouTube Downloader:** Download YouTube videos up to 1080p (MP4) or extract audio to MP3.
+- **TikTok Downloader:** Download TikTok videos (no watermark), photo slideshows, and stories.
+- **Twitter / X Downloader:** Download Photos and Videos from a specific Tweet/Thread.
+- **Twitter / X Scraper:** Scrape tweets based on Keywords, Hashtags, or Usernames. Exports media and a `.csv` file containing tweet text, dates, and URLs.
 
 ---
 
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
-|---|---|
-| Backend | Python 3.10+, Flask (MVC architecture) |
-| Frontend | HTML5, Jinja2 templates, Bootstrap 5, Vanilla JavaScript |
-| Production server | Gunicorn (behind Nginx, optional) |
+| :--- | :--- |
+| **Backend** | Python 3.10+, Flask (MVC architecture) |
+| **Frontend** | HTML5, Jinja2 templates, Bootstrap 5, Vanilla JavaScript |
+| **Production server** | Gunicorn (behind Nginx, optional) |
 
 ### Processing Tools
 
 | Feature | Library / Tool |
-|---|---|
-| Image convert & compress | `Pillow`, `pillow-heif` |
-| Remove text / watermark | `opencv-python-headless`, `numpy` (`cv2.inpaint`) |
-| Image upscale | **Real-ESRGAN ncnn Vulkan** (requires Vulkan-capable GPU) |
-| Video & audio | **FFmpeg** (system binary) |
-| PDF manipulation | `pypdf`, `PyMuPDF` (`fitz`), `img2pdf` |
-| Word ↔ PDF | `docx2pdf`, `pdf2docx` (Requires Microsoft Word) |
-| Excel & PPT ↔ PDF | `win32com.client` (COM Automation), `python-pptx` |
-| Compress PDF | **Ghostscript** (system binary) |
-| Archive handling | `zipfile`, `py7zr`, `rarfile`, **WinRAR** (for RAR creation) |
+| :--- | :--- |
+| **Image convert & compress** | `Pillow`, `pillow-heif` |
+| **Remove text / watermark** | `opencv-python-headless`, `numpy` (`cv2.inpaint`) |
+| **AI Background Remover** | `rembg`, `onnxruntime` |
+| **Image upscale** | **Real-ESRGAN ncnn Vulkan** (requires Vulkan-capable GPU) |
+| **Video & audio conversion** | **FFmpeg** (system binary) |
+| **PDF manipulation** | `pypdf`, `PyMuPDF` (`fitz`), `img2pdf` |
+| **Office ↔ PDF** | `docx2pdf`, `pdf2docx`, `python-pptx`, `win32com.client` |
+| **Compress PDF** | **Ghostscript** (system binary) |
+| **Archive handling** | `zipfile`, `py7zr`, `rarfile`, **WinRAR** |
+| **YouTube & Media Downloads** | `yt-dlp` |
+| **Social Media Scraping** | `gallery-dl` |
 
-> ⚠️ **System dependencies:** FFmpeg and Ghostscript are external system programs, not Python packages. Install them separately before using the related features.
+> ⚠️ **System dependencies:** FFmpeg, Ghostscript, Microsoft Office, and WinRAR are external system programs. Install them separately before using the related features.
 >
-> **OpenCV:** Install only one OpenCV distribution. This project uses `opencv-python-headless`; installing multiple OpenCV packages together (such as `opencv-python` and `opencv-contrib-python`) may cause conflicts when importing `cv2`.
+> **OpenCV:** Install only one OpenCV distribution (`opencv-python-headless`).
 
 ---
 
 ## 📋 Prerequisites
 
 - Python 3.10 or newer
-- [FFmpeg](https://ffmpeg.org/download.html) (for video conversion and audio extraction)
-- [Ghostscript](https://ghostscript.com/releases/gsdnld.html) (for PDF compression)
-- Microsoft Word installed (for Word → PDF conversion with `docx2pdf`)
+- [FFmpeg](https://ffmpeg.org/download.html) (video/audio conversion)
+- [Ghostscript](https://ghostscript.com/releases/gsdnld.html) (PDF compression)
+- Microsoft Office (Word, Excel, PowerPoint) for Office conversions.
 - WinRAR (optional, required only for creating `.rar` files).
-- A Vulkan-compatible GPU and up-to-date graphics driver (only for image upscaling)
+- A Vulkan-compatible GPU (only for image upscaling).
 
-### Install System Tools
-
-#### Windows
-
-Install FFmpeg and Ghostscript using Windows Package Manager (`winget`):
+### Install System Tools (Windows)
 
 ```powershell
+# Install FFmpeg via Winget
 winget install Gyan.FFmpeg -e
+
+# Install Ghostscript via Winget
 winget install ArtifexSoftware.GhostScript -e
 ```
 
-If the commands are not recognized after installation, check that their installation directories are available in your system `PATH`.
-
-#### Ubuntu / Debian
-
-```bash
-sudo apt update
-sudo apt install -y ffmpeg ghostscript
-```
-
-#### macOS (Homebrew)
-
-```bash
-brew install ffmpeg ghostscript
-```
-
-> **Word → PDF compatibility:** `docx2pdf` requires Microsoft Word to be installed. It is supported on Windows and macOS; this conversion workflow is not available on Linux through `docx2pdf`.
-
-Verify the FFmpeg and Ghostscript installations:
-
-```bash
-ffmpeg -version
-```
-
-On Windows, the Ghostscript command-line executable is commonly:
-
-```powershell
-gswin64c --version
-```
-
-On Linux/macOS, use:
-
-```bash
-gs --version
-```
+*(For Linux/macOS, install via `apt` or `brew`).*
 
 ---
 
-## 🔍 Upscale Setup (Real-ESRGAN)
+## 🔑 Social Media Authentication (`cookies.txt`)
 
-The upscaler uses the standalone `realesrgan-ncnn-vulkan` program. Install it once:
+To download from Instagram, TikTok, or Twitter/X, you must provide authentication cookies. Platforms block anonymous requests.
 
-```bash
-python setup_realesrgan.py
-```
-
-The setup script downloads the build for your operating system into:
-
-```text
-tools/
-└── realesrgan-ncnn-vulkan/
-    ├── realesrgan-ncnn-vulkan.exe
-    └── models/
-```
-
-The executable name may differ by operating system.
-
-If automatic downloading is blocked by SSL or antivirus software, download the ZIP manually from the [Real-ESRGAN v0.2.5.0 releases](https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.5.0), then either pass the ZIP to the setup script:
-
-```bash
-python setup_realesrgan.py --zip path/to/file.zip
-```
-
-Or configure `REALESRGAN_PATH` in `.env` to point to the executable.
-
-> ⚠️ Upscaling is resource-intensive. Keep `UPSCALE_WORKERS` at **2 or lower on a GPU with 4 GB VRAM** (for example, an RTX 3050) to reduce the risk of running out of video memory.
+1. Install the browser extension **"Get cookies.txt LOCALLY"** (Chrome/Edge).
+2. Login to the target platform (Instagram, X, etc.) in your browser.
+3. Click the extension icon and **Export**.
+4. Save the file as `cookies.txt` in the root directory of this project (next to `run.py`).
+5. *(Optional)* If you want separate cookies per platform, you can save them as `cookies_instagram.txt`, `cookies_twitter.txt`, etc. The app will automatically prioritize these specific files.
+6. **Important:** Add `cookies*.txt` to your `.gitignore` to prevent leaking your session.
 
 ---
 
 ## 🚀 Getting Started (Local Installation)
 
 ### 1. Clone the repository
-
 ```bash
 git clone https://github.com/username/omni-toolbox.git
 cd omni-toolbox
 ```
 
-Replace the repository URL with the actual URL of your GitHub repository.
-
 ### 2. Create and activate a virtual environment
-
 ```bash
 python -m venv venv
-```
-
-**Windows (PowerShell):**
-
-```powershell
-venv\Scripts\Activate.ps1
-```
-
-**Linux / macOS:**
-
-```bash
-source venv/bin/activate
+venv\Scripts\Activate.ps1   # Windows
+source venv/bin/activate    # Linux/macOS
 ```
 
 ### 3. Install Python dependencies
-
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 4. Configure environment variables
-
-Copy the example environment file:
-
-**Windows (PowerShell):**
-
-```powershell
-Copy-Item .env.example .env
-```
-
-**Linux / macOS:**
-
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` as needed. See the [Configuration](#️-configuration) section.
-
 ### 5. Run the application
-
 ```bash
 python run.py
 ```
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
+> ⚠️ **Note for Windows Users:** If you are running the app locally in development mode, the `run.py` file is configured with `use_reloader=False`. This prevents Flask from restarting itself unexpectedly while the app is downloading large files into the `outputs/` folder.
+
+Open `http://127.0.0.1:5000` in your browser.
 
 ---
 
-## ⚙️ Configuration
-
-Example `.env` configuration:
+## ⚙️ Configuration (`.env`)
 
 ```env
-# Flask
 FLASK_ENV=development
 SECRET_KEY=change-this-to-a-random-string
 PORT=5000
@@ -254,17 +183,16 @@ UPSCALE_MAX_OUTPUT_MP=200
 UPSCALE_MAX_QUEUE=30
 UPSCALE_TIMEOUT_SECONDS=900
 
-# PDF & Word limits
+# PDF & Office limits
 PDF_RENDER_MAX_PAGES=100
 PDF_TO_WORD_MAX_PAGES=50
+PDF_TO_PPT_MAX_PAGES=50
 WORD_TIMEOUT_SECONDS=120
 
 # Video & Audio
 VIDEO_TIMEOUT_SECONDS=600
 VIDEO_WORKERS=2
 ```
-
-Adjust binary paths according to your operating system. For example, `GHOSTSCRIPT_PATH` may be `gs` on Linux/macOS and `gswin64c` on Windows.
 
 ---
 
@@ -274,83 +202,50 @@ Adjust binary paths according to your operating system. For example, `GHOSTSCRIP
 omni-toolbox/
 ├── app/
 │   ├── __init__.py          # Flask application factory
-│   ├── config.py            # Configuration and environment variables
-│   ├── controllers/         # Routes and request handling (Controller)
-│   ├── services/            # Processing logic (image, media, PDF, archive)
-│   ├── templates/           # Jinja2 templates (View)
-│   ├── utils/               # Helper functions (file utilities, etc.)
-│   └── static/               # CSS, JavaScript, and images
-├── uploads/                  # Temporary uploaded files
-├── outputs/                  # Temporary processed files
-├── tools/                    # External binaries (Real-ESRGAN)
+│   ├── config.py            # Configuration & env variables
+│   ├── controllers/         # Routes (image, pdf, office, media, social, zip)
+│   ├── services/            # Processing logic (bg, image, pdf, office, social)
+│   ├── templates/           # Jinja2 templates
+│   ├── utils/               # Helper functions
+│   └── static/              # CSS, JS, images
+├── uploads/                 # Temporary uploaded files
+├── outputs/                 # Temporary processed files
+├── tools/                   # External binaries (Real-ESRGAN)
+├── cookies.txt              # (You create this) Social media auth
 ├── requirements.txt
 ├── .env.example
 ├── run.py
 └── README.md
 ```
 
-> Adjust this structure if your actual project folders differ.
-
 ---
 
 ## 🔒 Privacy & Safety Notes
 
-- Uploaded and processed files are temporary and are automatically deleted after the configured retention period (`FILE_RETENTION_MINUTES`).
+- Uploaded and processed files are temporary and are automatically deleted after the retention period.
 - Filenames are sanitized using `werkzeug.utils.secure_filename`.
-- Uploaded files are validated by file signatures (magic bytes) before processing.
-- Upload size is limited through `MAX_CONTENT_LENGTH_MB`.
-- Rate limiting is applied through `Flask-Limiter` to help prevent abuse of resource-intensive features.
-
----
-
-## 🐳 Deployment (Optional)
-
-Run the application with Gunicorn:
-
-```bash
-gunicorn -w 2 -b 0.0.0.0:8000 "app:create_app()" --timeout 300
-```
-
-For Docker deployment, use a `Dockerfile` that installs the required system dependencies, including FFmpeg and Ghostscript:
-
-```bash
-docker build -t omni-toolbox .
-docker run -p 8000:8000 --env-file .env omni-toolbox
-```
-
-> **Background job note:** If the upscaling job queue and job status are stored in memory, run a single Gunicorn worker process (for example, `gunicorn -w 1 --threads 4 ...`). Multiple worker processes do not share in-memory job state. For a multi-worker or multi-server deployment, consider moving background jobs to Celery with Redis.
+- Uploaded files are validated by magic bytes before processing.
+- Rate limiting is applied via `Flask-Limiter` to prevent abuse.
+- Cookies are not uploaded to any server; they are only used locally by your machine to authenticate with the respective social media platforms.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Image converter and compressor
-- [x] Image ↔ PDF
-- [x] Merge PDF, Split PDF, & Organize PDF
+- [x] Image converter, compressor, & watermark remover
+- [x] AI Background Remover
+- [x] Image ↔ PDF, Merge, Split, & Organize PDF
 - [x] Compress PDF
-- [x] Text / watermark remover
 - [x] Zip / 7z / RAR Archive Utility
-- [x] MOV ↔ MP4 converter and MP3 extractor
-- [x] Word ↔ PDF
-- [x] Excel & PowerPoint ↔ PDF
+- [x] MOV ↔ MP4 & MP3 extractor
+- [x] Word / Excel / PowerPoint ↔ PDF
 - [x] Image upscaler (Real-ESRGAN background queue)
-- [x] Batch processing & drag-and-drop upload
+- [x] Instagram, YouTube, TikTok, & Twitter Downloaders
+- [x] Twitter Scraper (Keyword & Profile)
 - [ ] Shared background job queue across workers (Celery + Redis)
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome!
-
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/your-feature`).
-3. Commit your changes (`git commit -m "Add your feature"`).
-4. Push to the branch (`git push origin feature/your-feature`).
-5. Open a Pull Request.
 
 ---
 
 ## 📜 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License.
