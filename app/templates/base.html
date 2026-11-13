@@ -75,10 +75,12 @@
               <li><a class="dropdown-item {{ 'active' if ep == 'zip.extract_page' }}" href="{{ url_for('zip.extract_page') }}"><i class="bi bi-box-arrow-up me-2"></i>Ekstrak Arsip</a></li>
             </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link {{ 'active' if ep == 'media.convert_page' }}" href="{{ url_for('media.convert_page') }}">
-              <i class="bi bi-camera-video me-1"></i>Video
-            </a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('media.convert_page', 'media.compress_page') }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Video</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item {{ 'active' if ep == 'media.convert_page' }}" href="{{ url_for('media.convert_page') }}"><i class="bi bi-arrow-left-right me-2"></i>Konversi Video</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'media.compress_page' }}" href="{{ url_for('media.compress_page') }}"><i class="bi bi-file-earmark-play me-2"></i>Kompres Video</a></li>
+            </ul>
           </li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle {{ 'active' if ep in ('social.instagram_page', 'social.youtube_page', 'social.tiktok_page', 'social.twitter_page') }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Social</a>

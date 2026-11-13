@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Kompres Video{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 920px;">
+  <div class="mb-4">
+    <h1 class="h3 mb-1"><i class="bi bi-file-earmark-play text-primary me-2"></i>Kompres Video</h1>
+    <p class="text-body-secondary mb-0">
+      Kecilkan ukuran file video (MP4, MOV, MKV, dll) tanpa mengurangi kualitas secara signifikan.
+    </p>
+  </div>
+
+  {% if not ffmpeg_ready %}
+  <div class="alert alert-warning d-flex gap-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+      <strong>FFmpeg belum terpasang.</strong> {{ setup_hint }}
+    </div>
+  </div>
+  {% endif %}
+
+  <form id="tool-form" class="card shadow-sm"
+        action="{{ url_for('media.compress_process') }}" method="post" enctype="multipart/form-data"
+        data-accept="{{ accept }}" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}" novalidate>
+    <div class="card-body p-4">
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Pilih atau seret file video ke sini">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret &amp; lepas file video di sini</p>
+        <p class="text-body-secondary small mb-0">
+          MP4, MOV, M4V, AVI, MKV, WebM &middot; maksimal {{ max_files }} file &middot; total {{ max_mb }} MB
+        </p>
+        <input type="file" id="file-input" class="d-none" multiple accept="{{ accept }}">
+      </div>
+
+      <ul id="file-list" class="list-group mt-3"></ul>
+
+      <div class="row g-4 mt-1">
+        <div class="col-12">
+          <label for="preset" class="form-label fw-semibold">Tingkat Kompresi</label>
+          <select class="form-select" id="preset" name="preset">
+            {% for key, data in presets.items() %}
+            <option value="{{ key }}" {{ 'selected' if key == default_preset }}>{{ data.label }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Pilih "Seimbang" untuk hasil terbaik antara ukuran file dan kualitas visual.</div>
+        </div>
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Mengunggah...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Progres upload">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-lightning-charge-fill me-1"></i>Kompres Video
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil Kompresi</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Hemat</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

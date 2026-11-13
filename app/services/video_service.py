@@ -174,3 +174,120 @@ def convert_many(entries, output_dir, ffmpeg: str, target_format: str,
             results[future_to_index[future]] = future.result()
 
     return results
+
+# =========================================================
+# KOMPRES VIDEO
+# =========================================================
+
+# CRF (Constant Rate Factor) untuk x264:
+# 18 = Visual lossless (sangat bagus, ukuran besar)
+# 23 = Default (bagus)
+# 28 = Kompresi sedang (ukuran jauh lebih kecil, kualitas oke)
+# 32 = Kompresi tinggi (agak blur, untuk menghemat ruang ekstrem)
+COMPRESS_PRESETS = {
+    "light": {"label": "Kualitas Tinggi (Ukuran agak besar)", "crf": 23},
+    "balanced": {"label": "Seimbang (Disarankan)", "crf": 28},
+    "heavy": {"label": "Ukuran Sangat Kecil (Kualitas menurun)", "crf": 32},
+}
+DEFAULT_COMPRESS_PRESET = "balanced"
+
+def compress_video(path, output_dir, original_name: str, ffmpeg: str, 
+                   preset: str, timeout: int = 600) -> dict:
+    """Kompres satu video menggunakan FFmpeg."""
+    path, output_dir = Path(path), Path(output_dir)
+    result = {"name": original_name, "status": "failed", "error": None}
+
+    crf_value = COMPRESS_PRESETS.get(preset, COMPRESS_PRESETS[DEFAULT_COMPRESS_PRESET])["crf"]
+    
+    out_name = f"{path.stem}_compressed.mp4"
+    out_path = output_dir / out_name
+
+    # Perintah FFmpeg untuk kompresi
+    cmd = [
+        ffmpeg, "-y", "-i", str(path),
+        "-hide_banner", "-loglevel", "error",
+        "-c:v", "libx264", "-crf", str(crf_value), "-preset", "faster",
+        "-c:a", "aac", "-b:a", "128k",
+        "-movflags", "+faststart",
+        str(out_path)
+    ]
+
+    kwargs = {}
+    if os.name == "nt":
+        kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+    try:
+        original_size = path.stat().st_size
+        completed = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, **kwargs)
+
+        if completed.returncode != 0 or not out_path.exists() or out_path.stat().st_size == 0:
+            out_path.unlink(missing_ok=True)
+            detail = (completed.stderr or completed.stdout or "").strip()
+            detail = detail.splitlines()[-1][:200] if detail else ""
+            result["error"] = f"FFmpeg gagal: {detail}" if detail else "Kompresi gagal."
+            return result
+
+        new_size = out_path.stat().st_size
+        
+        # Jika hasil kompresi malah lebih besar atau sama, gunakan file asli
+        if new_size >= original_size:
+            out_path.unlink(missing_ok=True) # Hapus file kompresi yang gagal
+            
+            # SALIN file asli ke folder output agar bisa diunduh
+            out_name = path.name
+            out_path = output_dir / out_name
+            shutil.copyfile(path, out_path)
+            
+            new_size = original_size
+            
+            result.update({
+                "name": original_name,
+                "status": "success",
+                "output": out_name,
+                "original_size": original_size,
+                "new_size": new_size,
+                "saved_percent": 0,
+                "kept_original": True,
+                "badge": "Sama",
+                "info": "File asli dipertahankan (tidak bisa dikompres lebih kecil)."
+            })
+            return result
+
+        saved_percent = (1 - new_size / original_size) * 100
+        
+        result.update({
+            "status": "success",
+            "output": out_name,
+            "original_size": original_size,
+            "new_size": new_size,
+            "saved_percent": round(max(saved_percent, 0.0), 1),
+            "kept_original": False,
+            "badge": "MP4",
+        })
+    except subprocess.TimeoutExpired:
+        out_path.unlink(missing_ok=True)
+        result["error"] = f"Proses melebihi batas waktu {timeout} detik."
+    except Exception as exc:
+        out_path.unlink(missing_ok=True)
+        result["error"] = f"Gagal mengompres: {exc}"
+
+    return result
+
+def compress_videos(entries, output_dir, ffmpeg: str, preset: str, timeout: int = 600, max_workers: int = 2) -> list:
+    """Kompres banyak video secara paralel."""
+    results = [None] * len(entries)
+    if not entries:
+        return results
+
+    with ThreadPoolExecutor(max_workers=max(1, max_workers)) as executor:
+        future_to_index = {
+            executor.submit(
+                compress_video, e["path"], output_dir, e["original_name"],
+                ffmpeg, preset, timeout,
+            ): i
+            for i, e in enumerate(entries)
+        }
+        for future in as_completed(future_to_index):
+            results[future_to_index[future]] = future.result()
+
+    return results
