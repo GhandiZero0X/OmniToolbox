@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Instagram Downloader{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 800px;">
+  <div class="mb-4 text-center">
+    <h1 class="h3 mb-2"><i class="bi bi-instagram text-danger me-2"></i>Instagram Downloader</h1>
+    <p class="text-body-secondary mb-0">Unduh Reels, Video, Feed, dan Story Instagram dalam kualitas terbaik.</p>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      
+      <form id="ig-form">
+        <div class="mb-3">
+          <label for="ig-url" class="form-label fw-semibold">Tempelkan Link Instagram</label>
+          <input type="url" class="form-control form-control-lg" id="ig-url" name="url" 
+                 placeholder="https://www.instagram.com/reel/..." required>
+          <div class="form-text">Contoh: Link Reels, Post Foto/Video, atau Story.</div>
+        </div>
+
+        <div class="mb-4">
+          <label for="ig-mode" class="form-label fw-semibold">Tipe Unduhan</label>
+          <select class="form-select form-select-lg" id="ig-mode" name="mode">
+            <option value="all" selected>Semua Media (Feed / Post / Carousel)</option>
+            <option value="story_both">Story (Video + Gambar/Thumbnail)</option>
+            <option value="story_video">Story (Hanya Video MP4)</option>
+            <option value="story_thumbnail">Story (Hanya Gambar/Thumbnail)</option>
+          </select>
+          <div class="form-text text-warning mt-1" id="story-warning" style="display: none;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Pastikan link yang kamu masukkan adalah link Story (contoh: instagram.com/stories/username/12345).
+          </div>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg w-100">
+          <i class="bi bi-cloud-arrow-down me-2"></i>Unduh Konten
+        </button>
+      </form>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+      
+      <div id="progress-wrap" class="mt-4 d-none text-center">
+        <div class="spinner-border text-primary mb-2" role="status"></div>
+        <p class="text-body-secondary small mb-0" id="status-text">Menghubungi Instagram...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hasil -->
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-3">Hasil Unduhan</h2>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Preview</th>
+              <th>File</th>
+              <th class="text-end">Ukuran</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById("ig-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        const url = document.getElementById("ig-url").value;
+        const btn = document.getElementById("submit-btn");
+        const alertBox = document.getElementById("alert-box");
+        const progressWrap = document.getElementById("progress-wrap");
+        const resultsCard = document.getElementById("results");
+        const resultsBody = document.getElementById("results-body");
+
+        // Reset UI
+        alertBox.classList.add("d-none");
+        resultsCard.classList.add("d-none");
+        progressWrap.classList.remove("d-none");
+        btn.disabled = true;
+        resultsBody.replaceChildren();
+
+        const formData = new FormData();
+        formData.append("url", url);
+        formData.append("mode", document.getElementById("ig-mode").value);
+
+        try {
+        const res = await fetch("/social/instagram/process", {
+            method: "POST",
+            body: formData
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || "Terjadi kesalahan.");
+
+        // Render Hasil
+        // Render Hasil
+        data.results.forEach(item => {
+            const tr = document.createElement("tr");
+            
+            // Kolom Preview
+            const tdPreview = document.createElement("td");
+            tdPreview.style.width = "80px";
+            
+            // Kolom File
+            const tdName = document.createElement("td");
+            
+            // Kolom Ukuran
+            const tdSize = document.createElement("td");
+            tdSize.className = "text-end";
+
+            // Kolom Aksi
+            const tdAction = document.createElement("td");
+            tdAction.className = "text-end";
+
+            if (item.status === "success") {
+            // Jika SUKSES
+            if (item.preview_url) {
+                const img = document.createElement("img");
+                img.src = item.thumb_url || item.preview_url;
+                img.className = "result-thumb";
+                tdPreview.append(img);
+            } else {
+                tdPreview.innerHTML = '<i class="bi bi-file-earmark-play fs-3 text-secondary"></i>';
+            }
+            tdName.textContent = item.name;
+            tdSize.textContent = item.new_size_h;
+            tdAction.innerHTML = `<a href="${item.url}" class="btn btn-sm btn-primary"><i class="bi bi-download"></i> Unduh</a>`;
+            } else {
+            // Jika GAGAL
+            tdPreview.innerHTML = '<i class="bi bi-x-circle fs-3 text-danger"></i>';
+            tdName.innerHTML = `<span class="text-danger">${item.error}</span>`;
+            tdName.colSpan = 2; // Gabungkan kolom nama dan ukuran
+            }
+
+            tr.append(tdPreview, tdName, tdSize, tdAction);
+            resultsBody.append(tr);
+        });
+
+        resultsCard.classList.remove("d-none");
+        
+        } catch (err) {
+        alertBox.textContent = err.message;
+        alertBox.classList.remove("d-none");
+        } finally {
+        progressWrap.classList.add("d-none");
+        btn.disabled = false;
+        }
+    });
+    // Munculkan peringatan jika user memilih mode Story
+    document.getElementById("ig-mode").addEventListener("change", function() {
+        const warning = document.getElementById("story-warning");
+        if (this.value.startsWith("story")) {
+        warning.style.display = "block";
+        } else {
+        warning.style.display = "none";
+        }
+    });
+</script>
+{% endblock %}

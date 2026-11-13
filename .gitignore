@@ -36,3 +36,6 @@ tools/
 .idea/
 .DS_Store
 Thumbs.db
+
+# ===== Browser cookies =====
+cookies.txt

@@ -80,6 +80,12 @@
               <i class="bi bi-camera-video me-1"></i>Video
             </a>
           </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {{ 'active' if ep in ('social.instagram_page',) }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Social</a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item {{ 'active' if ep == 'social.instagram_page' }}" href="{{ url_for('social.instagram_page') }}"><i class="bi bi-instagram me-2 text-danger"></i>Instagram Downloader</a></li>
+            </ul>
+          </li>
         </ul>
         <button id="theme-toggle" class="btn btn-outline-secondary btn-sm" type="button" aria-label="Ganti tema">
           <i class="bi bi-moon-stars"></i>
