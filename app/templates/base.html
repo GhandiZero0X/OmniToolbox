@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Beranda{% endblock %} · OmniToolbox</title>
 
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/Logo.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/Logo.png') }}">
   <!-- Terapkan tema tersimpan sebelum halaman tampil (mencegah kedip) -->
   <script>
     (function () {
@@ -27,8 +29,9 @@
   {% set ep = request.endpoint %}
   <nav class="navbar navbar-expand-md border-bottom bg-body sticky-top">
     <div class="container">
-      <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}">
-        <i class="bi bi-tools text-primary me-1"></i>OmniToolbox
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="{{ url_for('main.index') }}">
+        <img src="{{ url_for('static', filename='img/Logo.png') }}" alt="OmniToolbox Logo" style="height: 36px; margin-right: 10px;" class="rounded">
+        OmniToolbox
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav-menu"
               aria-controls="nav-menu" aria-expanded="false" aria-label="Buka menu">
@@ -57,7 +60,7 @@
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.compress_page' }}" href="{{ url_for('pdf.compress_page') }}"><i class="bi bi-file-earmark-pdf me-2"></i>Kompres PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.merge_page' }}" href="{{ url_for('pdf.merge_page') }}"><i class="bi bi-files me-2"></i>Gabung PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.split_page' }}" href="{{ url_for('pdf.split_page') }}"><i class="bi bi-scissors me-2"></i>Pisahkan PDF</a></li>
-<li><a class="dropdown-item {{ 'active' if ep == 'pdf.organize_page' }}" href="{{ url_for('pdf.organize_page') }}"><i class="bi bi-grid me-2"></i>Atur Halaman PDF</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'pdf.organize_page' }}" href="{{ url_for('pdf.organize_page') }}"><i class="bi bi-grid me-2"></i>Atur Halaman PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.images_to_pdf_page' }}" href="{{ url_for('pdf.images_to_pdf_page') }}"><i class="bi bi-file-earmark-image me-2"></i>Gambar ke PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.pdf_to_image_page' }}" href="{{ url_for('pdf.pdf_to_image_page') }}"><i class="bi bi-file-earmark-break me-2"></i>PDF ke Gambar</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'pdf.word_to_pdf_page' }}" href="{{ url_for('pdf.word_to_pdf_page') }}"><i class="bi bi-file-earmark-word me-2"></i>Word ke PDF</a></li>
