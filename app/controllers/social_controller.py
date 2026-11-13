@@ -118,3 +118,34 @@ def twitter_process():
         return jsonify(error=results["error"]), 500
 
     return build_job_response(job_id, results, output_dir, show_savings=False)
+
+@bp.get("/twitter-scrape")
+def twitter_scrape_page():
+    return render_template("social/twitter_scrape.html")
+
+@bp.post("/twitter-scrape/process")
+@limiter.limit("3 per minute")
+def twitter_scrape_process():
+    query = request.form.get("query", "").strip()
+    try:
+        limit = int(request.form.get("limit", 20))
+    except ValueError:
+        limit = 20
+
+    if not query:
+        return jsonify(error="Kata kunci atau username tidak boleh kosong."), 400
+
+    # Batasi limit maksimal agar server tidak crash
+    limit = max(5, min(limit, 100))
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+    
+    try:
+        outcome = social_service.scrape_twitter(query, limit, output_dir)
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    if "error" in outcome:
+        return jsonify(error=outcome["error"]), 500
+
+    return build_job_response(job_id, outcome["results"], output_dir, show_savings=False)

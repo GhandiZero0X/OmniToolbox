@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Twitter Scraper{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 800px;">
+  <div class="mb-4 text-center">
+    <h1 class="h3 mb-2"><i class="bi bi-search text-primary me-2"></i>Twitter Scraper</h1>
+    <p class="text-body-secondary mb-0">Kumpulkan teks, foto, dan video dari pencarian Twitter / X atau dari profil tertentu.</p>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      
+      <form id="scrape-form">
+        <div class="row g-3 mb-4">
+          <div class="col-md-8">
+            <label for="scrape-query" class="form-label fw-semibold">Kata Kunci / Hashtag / Username</label>
+            <input type="text" class="form-control form-control-lg" id="scrape-query" name="query" 
+                   placeholder="Contoh: #AI, pemilu, atau @elonmusk" required>
+            <div class="form-text">Gunakan awalan @ untuk scraping profil spesifik.</div>
+          </div>
+          <div class="col-md-4">
+            <label for="scrape-limit" class="form-label fw-semibold">Batas Tweet</label>
+            <input type="number" class="form-control form-control-lg" id="scrape-limit" name="limit" 
+                   value="20" min="5" max="100" required>
+          </div>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg w-100">
+          <i class="bi bi-search me-2"></i>Mulai Scraping
+        </button>
+      </form>
+
+      <div class="alert alert-warning small mt-3 mb-0">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        Semua media dan data teks Tweet (CSV) akan dikemas rapi ke dalam satu file ZIP.
+      </div>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+      
+      <div id="progress-wrap" class="mt-4 d-none text-center">
+        <div class="spinner-border text-primary mb-2" role="status"></div>
+        <p class="text-body-secondary small mb-0" id="status-text">Sedang memanen data Twitter... (Harap tunggu)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hasil -->
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4 text-center">
+      <h2 class="h5 mb-3">Scraping Selesai!</h2>
+      <div id="results-body"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("scrape-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const query = document.getElementById("scrape-query").value;
+    const limit = document.getElementById("scrape-limit").value;
+    const btn = document.getElementById("submit-btn");
+    const alertBox = document.getElementById("alert-box");
+    const progressWrap = document.getElementById("progress-wrap");
+    const resultsCard = document.getElementById("results");
+    const resultsBody = document.getElementById("results-body");
+
+    // Reset UI
+    alertBox.classList.add("d-none");
+    resultsCard.classList.add("d-none");
+    progressWrap.classList.remove("d-none");
+    btn.disabled = true;
+    resultsBody.replaceChildren();
+
+    const formData = new FormData();
+    formData.append("query", query);
+    formData.append("limit", limit);
+
+    try {
+      const res = await fetch("/social/twitter-scrape/process", {
+        method: "POST",
+        body: formData
+      });
+      
+      // Cek apakah server membalas dengan JSON atau HTML (crash)
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server mengalami error internal (Crash). Periksa terminal Python kamu.");
+      }
+      
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Terjadi kesalahan.");
+
+      data.results.forEach(item => {
+        if (item.status === "success") {
+            resultsBody.innerHTML = `
+              <i class="bi bi-file-earmark-zip display-4 text-success mb-3 d-block"></i>
+              <h4>${item.name}</h4>
+              <p class="text-body-secondary">Berisi ${item.badge} dan file CSV data.</p>
+              <a href="${item.url}" class="btn btn-success btn-lg px-5"><i class="bi bi-download me-2"></i>Unduh ZIP</a>
+            `;
+        } else {
+            resultsBody.innerHTML = `<p class="text-danger">${item.error}</p>`;
+        }
+      });
+
+      resultsCard.classList.remove("d-none");
+      
+    } catch (err) {
+      alertBox.textContent = err.message;
+      alertBox.classList.remove("d-none");
+    } finally {
+      progressWrap.classList.add("d-none");
+      btn.disabled = false;
+    }
+  });
+</script>
+{% endblock %}
