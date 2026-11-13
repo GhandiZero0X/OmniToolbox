@@ -11,10 +11,35 @@
   </div>
 </section>
 
-<section class="container pb-4">
-  <h2 class="h5 mb-3">Siap dipakai</h2>
-  <div class="row g-4">
-    <div class="col-md-6 col-lg-4">
+<section class="container pb-5">
+  
+  <!-- TOMBOL FILTER KATEGORI -->
+  <div class="d-flex flex-wrap justify-content-center gap-2 mb-5" id="filter-buttons">
+    <button class="btn btn-primary filter-btn active" data-filter="all">
+      <i class="bi bi-grid-fill me-1"></i> Semua
+    </button>
+    <button class="btn btn-outline-primary filter-btn" data-filter="gambar">
+      <i class="bi bi-image me-1"></i> Gambar
+    </button>
+    <button class="btn btn-outline-primary filter-btn" data-filter="pdf">
+      <i class="bi bi-file-earmark-pdf me-1"></i> PDF & Dokumen
+    </button>
+    <button class="btn btn-outline-primary filter-btn" data-filter="arsip">
+      <i class="bi bi-file-earmark-zip me-1"></i> Arsip
+    </button>
+    <button class="btn btn-outline-primary filter-btn" data-filter="video">
+      <i class="bi bi-camera-video me-1"></i> Video & Audio
+    </button>
+    <button class="btn btn-outline-primary filter-btn" data-filter="sosial">
+      <i class="bi bi-globe me-1"></i> Sosial Media
+    </button>
+  </div>
+
+  <!-- DAFTAR ALAT -->
+  <div class="row g-4" id="tool-grid">
+    
+    <!-- KATEGORI: GAMBAR -->
+    <div class="col-md-6 col-lg-4 tool-item" data-category="gambar">
       <a href="{{ url_for('image.compress_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-primary-subtle text-primary"><i class="bi bi-image"></i></div>
@@ -23,7 +48,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="gambar">
       <a href="{{ url_for('image.convert_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-success-subtle text-success"><i class="bi bi-arrow-left-right"></i></div>
@@ -32,7 +57,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="gambar">
       <a href="{{ url_for('image.watermark_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-eraser"></i></div>
@@ -41,7 +66,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="gambar">
       <a href="{{ url_for('image.upscale_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-secondary-subtle text-secondary-emphasis"><i class="bi bi-arrows-angle-expand"></i></div>
@@ -50,7 +75,18 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="gambar">
+      <a href="{{ url_for('image.remove_bg_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-person-bounding-box"></i></div>
+          <h3 class="h5 mt-3">Hapus Background</h3>
+          <p class="text-body-secondary mb-0">Hapus latar belakang foto secara otomatis dengan AI. Bisa diganti warna atau transparan.</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- KATEGORI: PDF & DOKUMEN -->
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.images_to_pdf_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-file-earmark-image"></i></div>
@@ -59,7 +95,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.split_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-scissors"></i></div>
@@ -68,7 +104,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.organize_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-success-subtle text-success"><i class="bi bi-grid"></i></div>
@@ -77,7 +113,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.compress_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-danger-subtle text-danger"><i class="bi bi-file-earmark-pdf"></i></div>
@@ -86,25 +122,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
-      <a href="{{ url_for('zip.folder_page') }}" class="card tool-card h-100 text-decoration-none">
-        <div class="card-body p-4">
-          <div class="tool-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-earmark-zip"></i></div>
-          <h3 class="h5 mt-3">Buat Arsip</h3>
-          <p class="text-body-secondary mb-0">Bungkus banyak file atau folder menjadi ZIP, 7Z, atau RAR dengan struktur tetap rapi.</p>
-        </div>
-      </a>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <a href="{{ url_for('zip.extract_page') }}" class="card tool-card h-100 text-decoration-none">
-        <div class="card-body p-4">
-          <div class="tool-icon bg-secondary-subtle text-secondary-emphasis"><i class="bi bi-box-arrow-up"></i></div>
-          <h3 class="h5 mt-3">Ekstrak Arsip</h3>
-          <p class="text-body-secondary mb-0">Buka isi file ZIP, RAR, atau 7Z dan unduh isinya sebagai kumpulan file yang rapi.</p>
-        </div>
-      </a>
-    </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.merge_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-primary-subtle text-primary"><i class="bi bi-files"></i></div>
@@ -113,7 +131,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.pdf_to_image_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-file-earmark-break"></i></div>
@@ -122,7 +140,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.word_to_pdf_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-primary-subtle text-primary"><i class="bi bi-file-earmark-word"></i></div>
@@ -131,7 +149,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
       <a href="{{ url_for('pdf.pdf_to_word_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-file-earmark-text"></i></div>
@@ -140,7 +158,56 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
+      <a href="{{ url_for('office.excel_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-success-subtle text-success"><i class="bi bi-file-earmark-excel"></i></div>
+          <h3 class="h5 mt-3">Excel ke PDF</h3>
+          <p class="text-body-secondary mb-0">Konversi file Excel (.xls/.xlsx) ke PDF.</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
+      <a href="{{ url_for('office.ppt_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-earmark-slides"></i></div>
+          <h3 class="h5 mt-3">PowerPoint ke PDF</h3>
+          <p class="text-body-secondary mb-0">Konversi presentasi (.ppt/.pptx) ke PDF.</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-4 tool-item" data-category="pdf">
+      <a href="{{ url_for('office.pdf_to_ppt_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-danger-subtle text-danger"><i class="bi bi-file-earmark-slides"></i></div>
+          <h3 class="h5 mt-3">PDF ke PowerPoint</h3>
+          <p class="text-body-secondary mb-0">Ubah halaman PDF menjadi slide gambar PowerPoint.</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- KATEGORI: ARSIP -->
+    <div class="col-md-6 col-lg-4 tool-item" data-category="arsip">
+      <a href="{{ url_for('zip.folder_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-earmark-zip"></i></div>
+          <h3 class="h5 mt-3">Buat Arsip</h3>
+          <p class="text-body-secondary mb-0">Bungkus banyak file atau folder menjadi ZIP, 7Z, atau RAR dengan struktur tetap rapi.</p>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6 col-lg-4 tool-item" data-category="arsip">
+      <a href="{{ url_for('zip.extract_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-secondary-subtle text-secondary-emphasis"><i class="bi bi-box-arrow-up"></i></div>
+          <h3 class="h5 mt-3">Ekstrak Arsip</h3>
+          <p class="text-body-secondary mb-0">Buka isi file ZIP, RAR, atau 7Z dan unduh isinya sebagai kumpulan file yang rapi.</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- KATEGORI: VIDEO & AUDIO -->
+    <div class="col-md-6 col-lg-4 tool-item" data-category="video">
       <a href="{{ url_for('media.convert_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-danger-subtle text-danger"><i class="bi bi-camera-video"></i></div>
@@ -151,43 +218,9 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
-      <a href="{{ url_for('office.excel_page') }}" class="card tool-card h-100 text-decoration-none">
-        <div class="card-body p-4">
-          <div class="tool-icon bg-success-subtle text-success"><i class="bi bi-file-earmark-excel"></i></div>
-          <h3 class="h5 mt-3">Excel ke PDF</h3>
-          <p class="text-body-secondary mb-0">Konversi file Excel (.xls/.xlsx) ke PDF.</p>
-        </div>
-      </a>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <a href="{{ url_for('office.ppt_page') }}" class="card tool-card h-100 text-decoration-none">
-        <div class="card-body p-4">
-          <div class="tool-icon bg-warning-subtle text-warning-emphasis"><i class="bi bi-file-earmark-slides"></i></div>
-          <h3 class="h5 mt-3">PowerPoint ke PDF</h3>
-          <p class="text-body-secondary mb-0">Konversi presentasi (.ppt/.pptx) ke PDF.</p>
-        </div>
-      </a>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <a href="{{ url_for('office.pdf_to_ppt_page') }}" class="card tool-card h-100 text-decoration-none">
-        <div class="card-body p-4">
-          <div class="tool-icon bg-danger-subtle text-danger"><i class="bi bi-file-earmark-slides"></i></div>
-          <h3 class="h5 mt-3">PDF ke PowerPoint</h3>
-          <p class="text-body-secondary mb-0">Ubah halaman PDF menjadi slide gambar PowerPoint.</p>
-        </div>
-      </a>
-    </div>
-    <div class="col-md-6 col-lg-4">
-      <a href="{{ url_for('image.remove_bg_page') }}" class="card tool-card h-100 text-decoration-none">
-        <div class="card-body p-4">
-          <div class="tool-icon bg-info-subtle text-info-emphasis"><i class="bi bi-person-bounding-box"></i></div>
-          <h3 class="h5 mt-3">Hapus Background</h3>
-          <p class="text-body-secondary mb-0">Hapus latar belakang foto secara otomatis dengan AI. Bisa diganti warna atau transparan.</p>
-        </div>
-      </a>
-    </div>
-    <div class="col-md-6 col-lg-4">
+
+    <!-- KATEGORI: SOSIAL MEDIA -->
+    <div class="col-md-6 col-lg-4 tool-item" data-category="sosial">
       <a href="{{ url_for('social.instagram_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-danger-subtle text-danger"><i class="bi bi-instagram"></i></div>
@@ -196,7 +229,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="sosial">
       <a href="{{ url_for('social.youtube_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-danger-subtle text-danger"><i class="bi bi-youtube"></i></div>
@@ -205,7 +238,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="sosial">
       <a href="{{ url_for('social.tiktok_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-dark-subtle text-dark"><i class="bi bi-tiktok"></i></div>
@@ -214,7 +247,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="sosial">
       <a href="{{ url_for('social.twitter_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-dark-subtle text-dark"><i class="bi bi-twitter-x"></i></div>
@@ -223,7 +256,7 @@
         </div>
       </a>
     </div>
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4 tool-item" data-category="sosial">
       <a href="{{ url_for('social.twitter_scrape_page') }}" class="card tool-card h-100 text-decoration-none">
         <div class="card-body p-4">
           <div class="tool-icon bg-primary-subtle text-primary"><i class="bi bi-search"></i></div>
@@ -232,23 +265,50 @@
         </div>
       </a>
     </div>
-  </div>
-</section>
 
-<section class="container pt-4">
-  <h2 class="h5 mb-3">Segera hadir</h2>
-  <div class="row g-3">
-    {% for icon, title in [
-    ] %}
-    <div class="col-6 col-md-4 col-lg-3">
-      <div class="card h-100 coming-soon text-center">
-        <div class="card-body py-3 px-2">
-          <i class="bi {{ icon }} fs-3 text-body-secondary"></i>
-          <div class="small mt-2">{{ title }}</div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const filterButtons = document.querySelectorAll(".filter-btn");
+    const toolItems = document.querySelectorAll(".tool-item");
+
+    filterButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        // 1. Ubah gaya tombol (Active / Non-active)
+        filterButtons.forEach(btn => {
+          btn.classList.remove("btn-primary", "active");
+          btn.classList.add("btn-outline-primary");
+        });
+        button.classList.remove("btn-outline-primary");
+        button.classList.add("btn-primary", "active");
+
+        // 2. Filter kartu alat
+        const filterValue = button.getAttribute("data-filter");
+
+        toolItems.forEach(item => {
+          if (filterValue === "all" || item.getAttribute("data-category") === filterValue) {
+            item.classList.remove("d-none");
+            // Animasi muncul (opsional)
+            item.style.animation = "fadeIn 0.3s ease-in-out";
+          } else {
+            item.classList.add("d-none");
+            item.style.animation = "";
+          }
+        });
+      });
+    });
+  });
+</script>
+
+<style>
+  /* Animasi fade in singkat saat filter berubah */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
 {% endblock %}
