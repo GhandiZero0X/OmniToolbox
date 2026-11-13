@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Twitter / X Downloader{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 800px;">
+  <div class="mb-4 text-center">
+    <h1 class="h3 mb-2"><i class="bi bi-twitter-x text-dark me-2"></i>Twitter / X Downloader</h1>
+    <p class="text-body-secondary mb-0">Unduh Foto dan Video dari postingan Twitter / X.</p>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      
+      <form id="twitter-form">
+        <div class="mb-3">
+          <label for="twitter-url" class="form-label fw-semibold">Tempelkan Link Postingan</label>
+          <input type="url" class="form-control form-control-lg" id="twitter-url" name="url" 
+                 placeholder="https://x.com/username/status/..." required>
+        </div>
+
+        <div class="mb-4">
+          <label for="twitter-mode" class="form-label fw-semibold">Tipe Unduhan</label>
+          <select class="form-select form-select-lg" id="twitter-mode" name="mode">
+            <option value="all" selected>Semua (Foto & Video)</option>
+            <option value="video">Video MP4 Saja</option>
+            <option value="photo">Foto Saja</option>
+          </select>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-dark btn-lg w-100">
+          <i class="bi bi-cloud-arrow-down me-2"></i>Unduh Konten
+        </button>
+      </form>
+
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+      
+      <div id="progress-wrap" class="mt-4 d-none text-center">
+        <div class="spinner-border text-dark mb-2" role="status"></div>
+        <p class="text-body-secondary small mb-0" id="status-text">Menghubungi Twitter / X...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hasil -->
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-3">Hasil Unduhan</h2>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Preview</th>
+              <th>File</th>
+              <th class="text-end">Ukuran</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("twitter-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const url = document.getElementById("twitter-url").value;
+    const mode = document.getElementById("twitter-mode").value;
+    const btn = document.getElementById("submit-btn");
+    const alertBox = document.getElementById("alert-box");
+    const progressWrap = document.getElementById("progress-wrap");
+    const resultsCard = document.getElementById("results");
+    const resultsBody = document.getElementById("results-body");
+
+    // Reset UI
+    alertBox.classList.add("d-none");
+    resultsCard.classList.add("d-none");
+    progressWrap.classList.remove("d-none");
+    btn.disabled = true;
+    resultsBody.replaceChildren();
+
+    const formData = new FormData();
+    formData.append("url", url);
+    formData.append("mode", mode);
+
+    try {
+      const res = await fetch("/social/twitter/process", {
+        method: "POST",
+        body: formData
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Terjadi kesalahan.");
+
+      data.results.forEach(item => {
+        const tr = document.createElement("tr");
+        
+        const tdPreview = document.createElement("td");
+        tdPreview.style.width = "80px";
+        tdPreview.innerHTML = item.badge === "MP4" 
+            ? '<i class="bi bi-play-btn fs-3 text-dark"></i>' 
+            : '<i class="bi bi-image fs-3 text-primary"></i>';
+        
+        const tdName = document.createElement("td");
+        tdName.textContent = item.name;
+        
+        const tdSize = document.createElement("td");
+        tdSize.className = "text-end";
+        tdSize.textContent = item.new_size_h;
+        
+        const tdAction = document.createElement("td");
+        tdAction.className = "text-end";
+        
+        if (item.status === "success") {
+            tdAction.innerHTML = `<a href="${item.url}" class="btn btn-sm btn-dark"><i class="bi bi-download"></i> Unduh</a>`;
+        } else {
+            tdName.innerHTML = `<span class="text-danger">${item.error}</span>`;
+            tdName.colSpan = 2;
+        }
+
+        tr.append(tdPreview, tdName, tdSize, tdAction);
+        resultsBody.append(tr);
+      });
+
+      resultsCard.classList.remove("d-none");
+      
+    } catch (err) {
+      alertBox.textContent = err.message;
+      alertBox.classList.remove("d-none");
+    } finally {
+      progressWrap.classList.add("d-none");
+      btn.disabled = false;
+    }
+  });
+</script>
+{% endblock %}

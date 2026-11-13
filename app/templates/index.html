@@ -214,6 +214,15 @@
         </div>
       </a>
     </div>
+    <div class="col-md-6 col-lg-4">
+      <a href="{{ url_for('social.twitter_page') }}" class="card tool-card h-100 text-decoration-none">
+        <div class="card-body p-4">
+          <div class="tool-icon bg-dark-subtle text-dark"><i class="bi bi-twitter-x"></i></div>
+          <h3 class="h5 mt-3">X Downloader</h3>
+          <p class="text-body-secondary mb-0">Unduh foto dan video dari postingan atau thread X.</p>
+        </div>
+      </a>
+    </div>
   </div>
 </section>
 
@@ -221,7 +230,6 @@
   <h2 class="h5 mb-3">Segera hadir</h2>
   <div class="row g-3">
     {% for icon, title in [
-      ("bi-twitter-x", "Foto Twitter / X"),
       ("bi-search", "Scraping Twitter")
     ] %}
     <div class="col-6 col-md-4 col-lg-3">

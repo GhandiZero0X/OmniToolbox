@@ -90,3 +90,31 @@ def tiktok_process():
         return jsonify(error=results["error"]), 500
 
     return build_job_response(job_id, results, output_dir, show_savings=False)
+
+@bp.get("/twitter")
+def twitter_page():
+    return render_template("social/twitter.html")
+
+@bp.post("/twitter/process")
+@limiter.limit("5 per minute")
+def twitter_process():
+    url = request.form.get("url", "").strip()
+    mode = request.form.get("mode", "all").strip()
+
+    if not url:
+        return jsonify(error="URL tidak boleh kosong."), 400
+
+    if "twitter.com" not in url and "x.com" not in url:
+        return jsonify(error="URL harus berupa link Twitter (x.com atau twitter.com) yang valid."), 400
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+    
+    try:
+        results = social_service.download_twitter(url, output_dir, mode)
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    if isinstance(results, dict) and "error" in results:
+        return jsonify(error=results["error"]), 500
+
+    return build_job_response(job_id, results, output_dir, show_savings=False)
