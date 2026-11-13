@@ -65,6 +65,8 @@
               <li><a class="dropdown-item {{ 'active' if ep == 'office.excel_page' }}" href="{{ url_for('office.excel_page') }}"><i class="bi bi-file-earmark-excel me-2"></i>Excel ke PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'office.ppt_page' }}" href="{{ url_for('office.ppt_page') }}"><i class="bi bi-file-earmark-slides me-2"></i>PowerPoint ke PDF</a></li>
               <li><a class="dropdown-item {{ 'active' if ep == 'office.pdf_to_ppt_page' }}" href="{{ url_for('office.pdf_to_ppt_page') }}"><i class="bi bi-file-earmark-slides me-2"></i>PDF ke PowerPoint</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'pdf.lock_unlock_page' }}" href="{{ url_for('pdf.lock_unlock_page') }}"><i class="bi bi-lock me-2"></i>Kunci / Buka PDF</a></li>
+              <li><a class="dropdown-item {{ 'active' if ep == 'pdf.watermark_page' }}" href="{{ url_for('pdf.watermark_page') }}"><i class="bi bi-water me-2"></i>Watermark PDF</a></li>
             </ul>
           </li>
           <li class="nav-item dropdown">

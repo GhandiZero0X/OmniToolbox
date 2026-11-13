@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Kunci PDF{% endblock %}
+{% block content %}
+<div class="container py-5" style="max-width: 800px;">
+  <h1 class="h3 mb-4"><i class="bi bi-lock text-primary me-2"></i>Kunci & Buka PDF</h1>
+  
+  <form id="tool-form" class="card shadow-sm" action="{{ url_for('pdf.lock_unlock_process') }}" method="post" enctype="multipart/form-data" data-accept=".pdf" data-max-files="{{ max_files }}" data-max-mb="{{ max_mb }}">
+    <div class="card-body p-4">
+      
+      <div class="dropzone" id="dropzone" tabindex="0" role="button">
+        <i class="bi bi-cloud-arrow-up dropzone-icon"></i>
+        <p class="fw-semibold mb-1">Seret file PDF ke sini</p>
+        <p class="text-body-secondary small mb-0">Maksimal {{ max_files }} file</p>
+        <input type="file" id="file-input" class="d-none" multiple accept=".pdf">
+      </div>
+      
+      <ul id="file-list" class="list-group mt-3"></ul>
+      
+      <div class="row g-3 mt-2">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Aksi</label>
+          <select class="form-select" name="action">
+            <option value="lock" selected>Kunci (Beri Password)</option>
+            <option value="unlock">Buka Kunci (Hapus Password)</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Password</label>
+          <input type="text" class="form-control" name="password" required placeholder="Masukkan password">
+        </div>
+      </div>
+
+      <!-- ===== ELEMEN WAJIB UNTUK MAIN.JS ===== -->
+      <div id="alert-box" class="alert alert-danger d-none mt-4 mb-0" role="alert"></div>
+
+      <div id="progress-wrap" class="mt-4 d-none">
+        <div class="d-flex justify-content-between small mb-1">
+          <span id="status-text">Memproses...</span>
+          <span id="percent-text">0%</span>
+        </div>
+        <div class="progress" role="progressbar">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-lg px-4" disabled>
+          <i class="bi bi-shield-lock me-1"></i>Proses PDF
+        </button>
+        <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-lg">Reset</button>
+      </div>
+      <!-- ======================================= -->
+
+    </div>
+  </form>
+
+  <!-- ===== HASIL (Juga wajib ada id-nya) ===== -->
+  <div id="results" class="card shadow-sm mt-4 d-none">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Hasil</h2>
+          <div id="results-summary" class="text-body-secondary small"></div>
+        </div>
+        <a id="zip-btn" class="btn btn-success d-none" href="#">
+          <i class="bi bi-file-earmark-zip me-1"></i>Unduh semua (ZIP)
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="text-end">Asli</th>
+              <th class="text-end">Hasil</th>
+              <th class="text-end">Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

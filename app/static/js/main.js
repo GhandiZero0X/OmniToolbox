@@ -466,7 +466,7 @@
     files.forEach((file) => formData.append("files", file, filePath(file))); // ← ganti file.name -> filePath(file)
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", form.action);
+    xhr.open("POST", form.getAttribute("action"));
     xhr.responseType = "json";
 
     xhr.upload.addEventListener("progress", (e) => {

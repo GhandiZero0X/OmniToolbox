@@ -773,3 +773,104 @@ def save_organized_pdf(pdf_paths: list, output_path, operations: list):
     except Exception as exc:
         output_path.unlink(missing_ok=True)
         raise ValueError(f"Gagal menyimpan PDF: {exc}")
+
+# =========================================================
+# KUNCI & BUKA KUNCI PDF
+# =========================================================
+
+def lock_pdf(path, output_dir, original_name: str, password: str) -> dict:
+    from pypdf import PdfReader, PdfWriter
+    path, output_dir = Path(path), Path(output_dir)
+    result = {"name": original_name, "status": "failed", "error": None}
+    out_path = output_dir / f"{path.stem}_locked.pdf"
+
+    try:
+        reader = PdfReader(str(path))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+            
+        writer.encrypt(user_password=password)
+        
+        with open(out_path, "wb") as f:
+            writer.write(f)
+            
+        result.update({
+            "status": "success", "output": out_path.name,
+            "original_size": path.stat().st_size, "new_size": out_path.stat().st_size,
+            "saved_percent": 0, "kept_original": False, "badge": "Terkunci",
+        })
+    except Exception as exc:
+        result["error"] = f"Gagal mengunci PDF: {exc}"
+    return result
+
+def unlock_pdf(path, output_dir, original_name: str, password: str) -> dict:
+    from pypdf import PdfReader, PdfWriter
+    path, output_dir = Path(path), Path(output_dir)
+    result = {"name": original_name, "status": "failed", "error": None}
+    out_path = output_dir / f"{path.stem}_unlocked.pdf"
+
+    try:
+        reader = PdfReader(str(path))
+        if reader.is_encrypted:
+            if not reader.decrypt(password):
+                return {**result, "error": "Password salah atau PDF tidak bisa dibuka."}
+                
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+            
+        with open(out_path, "wb") as f:
+            writer.write(f)
+            
+        result.update({
+            "status": "success", "output": out_path.name,
+            "original_size": path.stat().st_size, "new_size": out_path.stat().st_size,
+            "saved_percent": 0, "kept_original": False, "badge": "Terbuka",
+        })
+    except Exception as exc:
+        result["error"] = f"Gagal membuka PDF: {exc}"
+    return result
+
+# =========================================================
+# WATERMARK PDF
+# =========================================================
+
+def watermark_pdf(path, output_dir, original_name: str, text: str) -> dict:
+    import pymupdf  # Menggunakan pymupdf (bukan fitz) untuk menghilangkan FutureWarning
+    path, output_dir = Path(path), Path(output_dir)
+    result = {"name": original_name, "status": "failed", "error": None}
+    out_path = output_dir / f"{path.stem}_watermark.pdf"
+
+    try:
+        doc = pymupdf.open(str(path))
+        
+        # Hitung lebar teks agar bisa diletakkan tepat di tengah
+        font = pymupdf.Font("helv")
+        text_width = font.text_length(text, fontsize=60)
+
+        for page in doc:
+            rect = page.rect
+            pivot = pymupdf.Point(rect.width / 2, rect.height / 2)
+            
+            # Gunakan morph (pivot, matrix) untuk rotasi 45 derajat
+            page.insert_text(
+                (pivot.x - text_width / 2, pivot.y + 20), # 20 adalah offset vertikal agar center
+                text,
+                fontsize=60,
+                color=(0.8, 0.2, 0.2), 
+                fill_opacity=0.3,
+                morph=(pivot, pymupdf.Matrix(1, 1).prerotate(45)) # <-- ROTASI 45 DERAJAT
+            )
+            
+        doc.save(str(out_path))
+        doc.close()
+
+        result.update({
+            "status": "success", "output": out_path.name,
+            "original_size": path.stat().st_size, "new_size": out_path.stat().st_size,
+            "saved_percent": 0, "kept_original": False, "badge": "Watermark",
+        })
+    except Exception as exc:
+        result["error"] = f"Gagal memberi watermark: {exc}"
+    return result

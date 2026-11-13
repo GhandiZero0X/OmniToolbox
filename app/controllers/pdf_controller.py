@@ -508,3 +508,72 @@ def organize_save(job_id):
         "download_url": download_url,
         "final_size": final_path.stat().st_size
     })
+
+# =========================================================
+# KUNCI & BUKA KUNCI PDF
+# =========================================================
+
+@bp.get("/lock-unlock")
+def lock_unlock_page():
+    return render_template("pdf/lock_unlock.html", max_files=10, max_mb=current_app.config["MAX_UPLOAD_MB"])
+
+@bp.post("/lock-unlock/process")
+@limiter.limit("10 per minute")
+def lock_unlock_process():
+    action = request.form.get("action", "lock")
+    password = request.form.get("password", "").strip()
+    
+    if not password:
+        return jsonify(error="Password tidak boleh kosong."), 400
+
+    files, error = get_upload_files(10)
+    if error: return jsonify(error=error), 400
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+
+    try:
+        entries = save_uploaded_files(files, upload_dir, {".pdf"}, validator=pdf_service.is_pdf_file)
+        valid_entries = [e for e in entries if e["path"] is not None]
+        
+        processed = []
+        for e in valid_entries:
+            if action == "lock":
+                res = pdf_service.lock_pdf(e["path"], output_dir, e["original_name"], password)
+            else:
+                res = pdf_service.unlock_pdf(e["path"], output_dir, e["original_name"], password)
+            processed.append(res)
+            
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    results = merge_results(entries, processed)
+    return build_job_response(job_id, results, output_dir, show_savings=False)
+
+# =========================================================
+# WATERMARK PDF
+# =========================================================
+
+@bp.get("/watermark")
+def watermark_page():
+    return render_template("pdf/watermark.html", max_files=10, max_mb=current_app.config["MAX_UPLOAD_MB"])
+
+@bp.post("/watermark/process")
+@limiter.limit("10 per minute")
+def watermark_process():
+    text = request.form.get("text", "RAHASIA").strip()
+    if not text: text = "RAHASIA"
+
+    files, error = get_upload_files(10)
+    if error: return jsonify(error=error), 400
+
+    job_id, upload_dir, output_dir = new_job_dirs()
+
+    try:
+        entries = save_uploaded_files(files, upload_dir, {".pdf"}, validator=pdf_service.is_pdf_file)
+        valid_entries = [e for e in entries if e["path"] is not None]
+        processed = [pdf_service.watermark_pdf(e["path"], output_dir, e["original_name"], text) for e in valid_entries]
+    finally:
+        shutil.rmtree(upload_dir, ignore_errors=True)
+
+    results = merge_results(entries, processed)
+    return build_job_response(job_id, results, output_dir, show_savings=False)
